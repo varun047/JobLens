@@ -55,30 +55,45 @@ export const useRepoStore = create<RepoState>((set) => ({
         topics: repo.topics || [],
         html_url: repo.html_url,
         readme: '',
+        languages: {},
       }));
 
-      // Fetch READMEs in parallel, ignoring errors (such as 404 for repos without a README)
-      const readmePromises = reposData.map(async (repo: any, index: number) => {
-        try {
-          const readmeRes = await axios.get(
-            `https://api.github.com/repos/${repo.owner.login}/${repo.name}/readme`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                Accept: 'application/vnd.github.v3+json',
-              },
-            }
-          );
-          if (readmeRes.data && readmeRes.data.content) {
-            parsedRepos[index].readme = decodeBase64Utf8(readmeRes.data.content);
+      // Fetch READMEs and languages in parallel, ignoring individual errors
+      const detailPromises = reposData.map(async (repo: any, index: number) => {
+        const readmePromise = axios.get(
+          `https://api.github.com/repos/${repo.owner.login}/${repo.name}/readme`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
           }
-        } catch (err) {
-          // README not found or inaccessible, default to empty string
+        ).then((res) => {
+          if (res.data && res.data.content) {
+            parsedRepos[index].readme = decodeBase64Utf8(res.data.content);
+          }
+        }).catch(() => {
           parsedRepos[index].readme = '';
-        }
+        });
+
+        const languagesPromise = axios.get(
+          `https://api.github.com/repos/${repo.owner.login}/${repo.name}/languages`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          }
+        ).then((res) => {
+          parsedRepos[index].languages = res.data || {};
+        }).catch(() => {
+          parsedRepos[index].languages = {};
+        });
+
+        await Promise.all([readmePromise, languagesPromise]);
       });
 
-      await Promise.all(readmePromises);
+      await Promise.all(detailPromises);
 
       set({ repos: parsedRepos, loading: false });
     } catch (err: any) {

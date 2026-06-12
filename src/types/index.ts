@@ -43,6 +43,7 @@ export interface GitHubRepo {
   topics: string[];
   html_url: string;
   readme?: string; // Decoded README markdown text
+  languages?: Record<string, number>;
 }
 
 export interface RankedProject {

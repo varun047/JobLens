@@ -113,6 +113,7 @@ GitHub repos: ${JSON.stringify(
           name: r.name,
           description: r.description,
           language: r.language,
+          languages: r.languages || {},
           topics: r.topics,
           readme: r.readme?.slice(0, 500) || '',
         }))
@@ -138,7 +139,21 @@ Return ONLY raw JSON matching this schema:
       const step2Prompt = `You are an expert resume writer and ATS specialist.
 
 Candidate base resume: ${JSON.stringify(baseResume)}
-Top matched GitHub projects: ${JSON.stringify(step1Result.rankedProjects)}
+Top matched GitHub projects with match details: ${JSON.stringify(
+        step1Result.rankedProjects.map((rp: RankedProject) => {
+          const repo = repos.find((r) => r.name === rp.name);
+          return {
+            name: rp.name,
+            reason: rp.reason,
+            relevanceScore: rp.relevanceScore,
+            description: repo?.description || '',
+            language: repo?.language || '',
+            languages: repo?.languages || {},
+            topics: repo?.topics || [],
+            readme: repo?.readme?.slice(0, 500) || '',
+          };
+        })
+      )}
 Job Description: ${jdText}
 
 Rewrite the resume tailored to this JD:
@@ -158,9 +173,11 @@ Return ONLY raw JSON matching this schema:
     "projects": [{ "name": "string", "tech": ["string"], "bullets": ["string"] }],
     "education": [{ "institution": "string", "degree": "string", "year": "string" }]
   },
-  "atsScore": { "before": number, "after": number },
+  "atsScore": { "before": number between 0-100, "after": number between 0-100 },
   "missingKeywords": ["string"]
-}`;
+}
+
+Return scores as whole numbers like 62 or 78, NOT decimals like 0.62.`;
 
       const step2Result = await callGroqAPI(apiKey, step2Prompt);
       if (!step2Result.tailoredResume || !step2Result.atsScore) {
