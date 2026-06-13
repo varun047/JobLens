@@ -63,3 +63,24 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 4. Create public.repo_analyses table
+CREATE TABLE IF NOT EXISTS public.repo_analyses (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  repo_name text NOT NULL,
+  repo_url text,
+  summary text,
+  tech_stack jsonb DEFAULT '[]',
+  complexity text,
+  domains jsonb DEFAULT '[]',
+  highlights jsonb DEFAULT '[]',
+  raw_files jsonb DEFAULT '[]',
+  analyzed_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.repo_analyses ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users access own analyses"
+ON public.repo_analyses FOR ALL
+USING (auth.uid() = user_id);

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { ParsedResume, GitHubRepo, RankedProject, CareerAdvice } from '../types';
+import { useRepoStore } from './repoStore';
 
 interface AgentState {
   jdText: string;
@@ -72,21 +73,28 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     set({ error: null, agentStatus: 'step1', statusMessage: 'Analyzing your GitHub projects and codebase...' });
 
     try {
+      const repoAnalyses = useRepoStore.getState().repoAnalyses;
+      const selectedAnalyses = repoAnalyses.filter((a) =>
+        repos.some((r) => r.name === a.repo_name)
+      );
+
       // Step 1: Project Ranker
       const step1Prompt = `You are an expert tech recruiter.
 
-GitHub repos:
-${repos.map((r) => `
-Repo: ${r.name}
-README: ${r.readme?.slice(0, 300)}
-Key files:
-${r.keyFiles?.map((f) => `--- ${f.path} ---\n${f.content}`).join('\n') || 'None'}
-`).join('\n\n')}
+Here are pre-analyzed summaries of the candidate's GitHub projects:
+${selectedAnalyses.map(
+  (r) => `
+  Project: ${r.repo_name}
+  Summary: ${r.summary}
+  Tech Stack: ${r.techStack.join(', ')}
+  Domains: ${r.domains.join(', ')}
+  Highlights: ${r.highlights.join(', ')}
+`
+).join('\n')}
 
 Job Description: ${jdText}
 
-Pick the top 3 most relevant repos for this role.
-Return ONLY raw JSON matching this schema:
+Pick the top 3 most relevant projects. Return ONLY raw JSON:
 {
   "rankedProjects": [
     { "name": "string", "reason": "string", "relevanceScore": number }

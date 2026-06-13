@@ -22,14 +22,44 @@ const languageColors: Record<string, string> = {
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
-  const { repos, loading, error, fetchRepos } = useRepoStore();
+  const {
+    repos,
+    loading,
+    error,
+    fetchRepos,
+    repoAnalyses,
+    analysisStatus,
+    analysisProgress,
+    analyzeAllRepos,
+    reAnalyzeAllRepos,
+  } = useRepoStore();
+  
   const [searchQuery, setSearchQuery] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const [prevStatus, setPrevStatus] = useState(analysisStatus);
 
   useEffect(() => {
     if (user?.provider_token && repos.length === 0) {
       fetchRepos(user.provider_token);
     }
   }, [user?.provider_token, repos.length, fetchRepos]);
+
+  // Trigger background codebase analysis when repos load
+  useEffect(() => {
+    if (user?.id && repos.length > 0 && analysisStatus === 'idle') {
+      analyzeAllRepos(user.id);
+    }
+  }, [user?.id, repos.length, analysisStatus, analyzeAllRepos]);
+
+  // Handle showing toast notification on completion
+  useEffect(() => {
+    if (prevStatus === 'analyzing' && analysisStatus === 'done') {
+      setShowToast(true);
+      const timer = setTimeout(() => setShowToast(false), 3000);
+      return () => clearTimeout(timer);
+    }
+    setPrevStatus(analysisStatus);
+  }, [analysisStatus, prevStatus]);
 
   const handleRefresh = () => {
     if (user?.provider_token) {
@@ -50,6 +80,18 @@ export const Dashboard: React.FC = () => {
     if (!text) return '';
     if (text.length <= length) return text;
     return text.substring(0, length) + '...';
+  };
+
+  const lastUpdatedText = () => {
+    if (!repoAnalyses || repoAnalyses.length === 0) return 'Never';
+    const dates = repoAnalyses.map(a => a.analyzed_at ? new Date(a.analyzed_at).getTime() : 0);
+    if (dates.length === 0 || Math.max(...dates) === 0) return 'Today';
+    const maxDate = new Date(Math.max(...dates));
+    const diffTime = Math.abs(new Date().getTime() - maxDate.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 1) return 'Today';
+    return `${diffDays} days ago`;
   };
 
   return (
@@ -84,6 +126,81 @@ export const Dashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Codebase Analysis Status Card */}
+      {analysisStatus === 'analyzing' && (
+        <div className="mb-6 bg-[#121212] border border-zinc-800 rounded-xl p-5 flex flex-col gap-3 shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-zinc-200 font-semibold text-xs">
+              <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-zinc-800/80 border-t-white rounded-full"></span>
+              <span>🔍 Analyzing your GitHub projects</span>
+            </div>
+            <span className="text-[10px] text-zinc-500 font-medium">
+              This runs once and is cached for 7 days
+            </span>
+          </div>
+          
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center text-[10px] text-zinc-400">
+              <span>
+                Processing:{' '}
+                <span className="font-mono text-white">
+                  {analysisProgress.currentRepo || 'Initializing'}
+                </span>{' '}
+                ({analysisProgress.current} of {analysisProgress.total})
+              </span>
+              <span className="font-bold">
+                {Math.round(
+                  (analysisProgress.current / (analysisProgress.total || 1)) * 100
+                )}
+                %
+              </span>
+            </div>
+            <div className="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+                style={{
+                  width: `${Math.round(
+                    (analysisProgress.current / (analysisProgress.total || 1)) * 100
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {analysisStatus === 'done' && (
+        <div className="mb-6 bg-[#121212] border border-zinc-800 rounded-xl p-5 flex items-center justify-between shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-950/20 border border-emerald-900/30 flex items-center justify-center text-emerald-400 text-xs font-bold">
+              ✓
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold text-white">
+                {repos.length} projects analyzed and ready
+              </h4>
+              <p className="text-[10px] text-zinc-500 mt-0.5">
+                Last updated: {lastUpdatedText()}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => user?.id && reAnalyzeAllRepos(user.id)}
+            className="text-[10px] text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-lg bg-zinc-950 transition-all cursor-pointer font-medium"
+          >
+            Re-analyze
+          </button>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-6 right-6 bg-emerald-950 border border-emerald-900 text-emerald-400 text-xs px-4 py-2.5 rounded-xl shadow-2xl z-50 flex items-center gap-2 animate-fadeIn">
+          <span>✓</span>
+          <span>All {repos.length} projects analyzed and ready</span>
+        </div>
+      )}
 
       {/* Warning if no token */}
       {!user?.provider_token && (

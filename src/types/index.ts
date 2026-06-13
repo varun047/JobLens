@@ -60,3 +60,17 @@ export interface CareerAdvice {
   actionItem: string;
   interviewTopics: string[];
 }
+
+export interface RepoAnalysis {
+  id?: string;
+  user_id?: string;
+  repo_name: string;
+  repo_url: string;
+  summary: string;
+  techStack: string[];
+  complexity: 'beginner' | 'intermediate' | 'advanced';
+  domains: string[];
+  highlights: string[];
+  raw_files?: any[];
+  analyzed_at?: string;
+}
