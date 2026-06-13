@@ -1,7 +1,8 @@
 import type { ParsedResume } from '../types';
+import { extractJSON } from './extractJSON';
 
 export async function parseResume(text: string): Promise<ParsedResume> {
-  const prompt = `Parse this resume and return ONLY raw JSON, no markdown, no backticks, no explanation.
+  const prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks, no 'Here are' or any text before or after. Start your response with { and end with }. Nothing else.
 
 Schema:
 {
@@ -22,7 +23,13 @@ ${text}`;
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'llama3.2',
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a JSON API. You only output valid JSON objects. Never output text, explanations, or markdown. Always start with { and end with }.'
+        },
+        { role: 'user', content: prompt }
+      ],
       stream: false
     })
   });
@@ -36,6 +43,5 @@ ${text}`;
 
   const data = await response.json();
   const textContent = data.message.content;
-  const clean = textContent.replace(/```json|```/gi, '').trim();
-  return JSON.parse(clean) as ParsedResume;
+  return extractJSON(textContent) as ParsedResume;
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ParsedResume, GitHubRepo, RankedProject, CareerAdvice } from '../types';
 import { useRepoStore } from './repoStore';
+import { extractJSON } from '../lib/extractJSON';
 
 interface AgentState {
   jdText: string;
@@ -24,7 +25,13 @@ async function callOllamaAPI(prompt: string): Promise<any> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'llama3.2',
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a JSON API. You only output valid JSON objects. Never output text, explanations, or markdown. Always start with { and end with }.'
+        },
+        { role: 'user', content: prompt }
+      ],
       stream: false
     })
   });
@@ -36,8 +43,7 @@ async function callOllamaAPI(prompt: string): Promise<any> {
 
   const data = await response.json();
   const textContent = data.message.content;
-  const clean = textContent.replace(/```json|```/gi, '').trim();
-  return JSON.parse(clean);
+  return extractJSON(textContent);
 }
 
 export const useAgentStore = create<AgentState>((set, get) => ({
@@ -79,7 +85,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       );
 
       // Step 1: Project Ranker
-      const step1Prompt = `You are an expert tech recruiter.
+      const step1Prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks, no 'Here are' or any text before or after. Start your response with { and end with }. Nothing else.
 
 Here are pre-analyzed summaries of the candidate's GitHub projects:
 ${selectedAnalyses.map(
@@ -94,7 +100,7 @@ ${selectedAnalyses.map(
 
 Job Description: ${jdText}
 
-Pick the top 3 most relevant projects. Return ONLY raw JSON:
+Pick the top 3 most relevant projects. Return ONLY raw JSON matching this schema:
 {
   "rankedProjects": [
     { "name": "string", "reason": "string", "relevanceScore": number }
@@ -111,7 +117,7 @@ Pick the top 3 most relevant projects. Return ONLY raw JSON:
       set({ agentStatus: 'step2', statusMessage: 'Rewriting resume bullets to match JD keywords...' });
 
       // Step 2: Resume Rewriter
-      const step2Prompt = `You are an expert resume writer and ATS specialist.
+      const step2Prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks, no 'Here are' or any text before or after. Start your response with { and end with }. Nothing else.
 
 Candidate base resume: ${JSON.stringify(baseResume)}
 Top matched GitHub projects with match details: ${JSON.stringify(
@@ -170,7 +176,7 @@ Return scores as whole numbers like 62 or 78, NOT decimals like 0.62.`;
       set({ agentStatus: 'step3', statusMessage: 'Generating personalized career advice...' });
 
       // Step 3: Career Coach
-      const step3Prompt = `You are a senior engineering career coach.
+      const step3Prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks, no 'Here are' or any text before or after. Start your response with { and end with }. Nothing else.
 
 Candidate profile: ${JSON.stringify(baseResume)}
 Target role JD: ${jdText}

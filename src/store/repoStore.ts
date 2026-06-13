@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import { supabase } from '../lib/supabase';
+import { extractJSON } from '../lib/extractJSON';
 import type { GitHubRepo, RepoAnalysis } from '../types';
 
 interface RepoState {
@@ -76,7 +77,13 @@ async function callOllamaAPI(prompt: string): Promise<any> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'llama3.2',
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a JSON API. You only output valid JSON objects. Never output text, explanations, or markdown. Always start with { and end with }.'
+        },
+        { role: 'user', content: prompt }
+      ],
       stream: false
     })
   });
@@ -88,8 +95,7 @@ async function callOllamaAPI(prompt: string): Promise<any> {
 
   const data = await response.json();
   const textContent = data.message.content;
-  const clean = textContent.replace(/```json|```/gi, '').trim();
-  return JSON.parse(clean);
+  return extractJSON(textContent);
 }
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -298,7 +304,9 @@ export const useRepoStore = create<RepoState>((set, get) => ({
         setAnalysisProgress({ current: i + 1, total, currentRepo: repo.name });
 
         try {
-          const prompt = `Analyze this GitHub project and return ONLY raw JSON:
+          const prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks, no 'Here are' or any text before or after. Start your response with { and end with }. Nothing else.
+
+Schema:
 {
   "summary": "string",          // 2-3 sentence what it does
   "techStack": ["string"],      // all technologies used
