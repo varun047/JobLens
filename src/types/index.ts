@@ -44,6 +44,8 @@ export interface GitHubRepo {
   html_url: string;
   readme?: string; // Decoded README markdown text
   languages?: Record<string, number>;
+  fileTree?: string[];
+  keyFiles?: { path: string; content: string }[];
 }
 
 export interface RankedProject {

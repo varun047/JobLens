@@ -8,10 +8,11 @@ interface AgentState {
   atsScore: { before: number; after: number } | null;
   missingKeywords: string[];
   careerAdvice: CareerAdvice | null;
-  agentStatus: 'idle' | 'step1' | 'step2' | 'step3' | 'done' | 'error';
+  agentStatus: 'idle' | 'reading' | 'step1' | 'step1_done' | 'step2' | 'step2_done' | 'step3' | 'step3_done' | 'done' | 'error';
+  statusMessage: string;
   error: string | null;
   setJdText: (text: string) => void;
-  setAgentStatus: (status: AgentState['agentStatus']) => void;
+  setAgentStatus: (status: AgentState['agentStatus'], message?: string) => void;
   runAgent: (repos: GitHubRepo[], baseResume: ParsedResume) => Promise<void>;
   resetAgent: () => void;
 }
@@ -46,9 +47,10 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   missingKeywords: [],
   careerAdvice: null,
   agentStatus: 'idle',
+  statusMessage: '',
   error: null,
   setJdText: (jdText) => set({ jdText }),
-  setAgentStatus: (agentStatus) => set({ agentStatus }),
+  setAgentStatus: (agentStatus, statusMessage = '') => set({ agentStatus, statusMessage }),
   resetAgent: () =>
     set({
       rankedProjects: [],
@@ -57,6 +59,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       missingKeywords: [],
       careerAdvice: null,
       agentStatus: 'idle',
+      statusMessage: '',
       error: null,
     }),
   runAgent: async (repos, baseResume) => {
@@ -66,22 +69,19 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       return;
     }
 
-    set({ error: null, agentStatus: 'step1' });
+    set({ error: null, agentStatus: 'step1', statusMessage: 'Analyzing your GitHub projects and codebase...' });
 
     try {
       // Step 1: Project Ranker
       const step1Prompt = `You are an expert tech recruiter.
 
-GitHub repos: ${JSON.stringify(
-        repos.map((r) => ({
-          name: r.name,
-          description: r.description,
-          language: r.language,
-          languages: r.languages || {},
-          topics: r.topics,
-          readme: r.readme?.slice(0, 500) || '',
-        }))
-      )}
+GitHub repos:
+${repos.map((r) => `
+Repo: ${r.name}
+README: ${r.readme?.slice(0, 300)}
+Key files:
+${r.keyFiles?.map((f) => `--- ${f.path} ---\n${f.content}`).join('\n') || 'None'}
+`).join('\n\n')}
 
 Job Description: ${jdText}
 
@@ -97,7 +97,10 @@ Return ONLY raw JSON matching this schema:
       if (!step1Result.rankedProjects || !Array.isArray(step1Result.rankedProjects)) {
         throw new Error('Project ranker response did not contain rankedProjects list.');
       }
-      set({ rankedProjects: step1Result.rankedProjects, agentStatus: 'step2' });
+      set({ rankedProjects: step1Result.rankedProjects, agentStatus: 'step1_done', statusMessage: 'Found top 3 matching projects ✓' });
+
+      // Transition to step 2 immediately
+      set({ agentStatus: 'step2', statusMessage: 'Rewriting resume bullets to match JD keywords...' });
 
       // Step 2: Resume Rewriter
       const step2Prompt = `You are an expert resume writer and ATS specialist.
@@ -151,8 +154,12 @@ Return scores as whole numbers like 62 or 78, NOT decimals like 0.62.`;
         tailoredResume: step2Result.tailoredResume,
         atsScore: step2Result.atsScore,
         missingKeywords: step2Result.missingKeywords || [],
-        agentStatus: 'step3',
+        agentStatus: 'step2_done',
+        statusMessage: 'Resume tailored successfully ✓'
       });
+
+      // Transition to step 3 immediately
+      set({ agentStatus: 'step3', statusMessage: 'Generating personalized career advice...' });
 
       // Step 3: Career Coach
       const step3Prompt = `You are a senior engineering career coach.
@@ -178,7 +185,14 @@ Return ONLY raw JSON matching this schema:
         interviewTopics: step3Result.interviewTopics || [],
       };
 
-      set({ careerAdvice, agentStatus: 'done' });
+      set({ 
+        careerAdvice, 
+        agentStatus: 'step3_done', 
+        statusMessage: 'Analysis complete ✓' 
+      });
+
+      // Done
+      set({ agentStatus: 'done', statusMessage: '✓ Analysis complete — scroll down to see results' });
     } catch (err: any) {
       console.error(err);
       set({

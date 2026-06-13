@@ -22,6 +22,45 @@ function decodeBase64Utf8(str: string): string {
   }
 }
 
+function selectKeyFiles(treeNodes: any[]): string[] {
+  const selectedPaths: string[] = [];
+  const srcOrComponentPaths: string[] = [];
+  
+  // Binary extension list to ignore
+  const binaryExtensions = /\.(png|jpg|jpeg|svg|ico|lock|gif|mp4|woff|woff2|eot|ttf|webp|zip|tar|gz|pdf)$/i;
+
+  for (const node of treeNodes) {
+    if (node.type !== 'blob') continue;
+    if (typeof node.size === 'number' && node.size >= 102400) continue; // Skip files >= 100KB
+    
+    const path = node.path;
+    const filename = path.split('/').pop() || '';
+    
+    if (binaryExtensions.test(filename)) continue;
+    
+    // Priority files
+    if (filename === 'package.json') {
+      selectedPaths.push(path);
+    } else if (filename === 'requirements.txt' || filename === 'pyproject.toml') {
+      selectedPaths.push(path);
+    } else if (['index.js', 'index.ts', 'App.tsx', 'main.py', 'app.py'].includes(filename)) {
+      selectedPaths.push(path);
+    } else if (
+      (path.startsWith('src/') || path.includes('/src/') || path.startsWith('components/') || path.includes('/components/')) &&
+      !filename.includes('lock') // Skip lock files
+    ) {
+      srcOrComponentPaths.push(path);
+    }
+  }
+
+  // Take up to 3 files from src or components folder
+  const takenSrc = srcOrComponentPaths.slice(0, 3);
+  selectedPaths.push(...takenSrc);
+
+  // Dedup paths
+  return Array.from(new Set(selectedPaths));
+}
+
 export const useRepoStore = create<RepoState>((set) => ({
   repos: [],
   loading: false,
@@ -56,9 +95,11 @@ export const useRepoStore = create<RepoState>((set) => ({
         html_url: repo.html_url,
         readme: '',
         languages: {},
+        fileTree: [],
+        keyFiles: [],
       }));
 
-      // Fetch READMEs and languages in parallel, ignoring individual errors
+      // Fetch READMEs, languages, and codebase file structures in parallel, ignoring individual errors
       const detailPromises = reposData.map(async (repo: any, index: number) => {
         const readmePromise = axios.get(
           `https://api.github.com/repos/${repo.owner.login}/${repo.name}/readme`,
@@ -90,7 +131,61 @@ export const useRepoStore = create<RepoState>((set) => ({
           parsedRepos[index].languages = {};
         });
 
-        await Promise.all([readmePromise, languagesPromise]);
+        const treePromise = axios.get(
+          `https://api.github.com/repos/${repo.owner.login}/${repo.name}/git/trees/HEAD?recursive=1`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          }
+        ).then(async (res) => {
+          if (res.data && Array.isArray(res.data.tree)) {
+            const treeNodes = res.data.tree;
+            parsedRepos[index].fileTree = treeNodes.map((n: any) => n.path);
+            
+            const selectedPaths = selectKeyFiles(treeNodes);
+            let totalChars = 0;
+            const keyFiles: { path: string; content: string }[] = [];
+            
+            for (const path of selectedPaths) {
+              if (totalChars >= 3000) break;
+              try {
+                const contentRes = await axios.get(
+                  `https://api.github.com/repos/${repo.owner.login}/${repo.name}/contents/${path}`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      Accept: 'application/vnd.github.v3+json',
+                    },
+                  }
+                );
+                if (contentRes.data && contentRes.data.content) {
+                  let decoded = decodeBase64Utf8(contentRes.data.content);
+                  decoded = decoded.slice(0, 800);
+                  
+                  const remainingQuota = 3000 - totalChars;
+                  if (decoded.length > remainingQuota) {
+                    decoded = decoded.slice(0, remainingQuota);
+                  }
+                  
+                  if (decoded.length > 0) {
+                    keyFiles.push({ path, content: decoded });
+                    totalChars += decoded.length;
+                  }
+                }
+              } catch (e) {
+                // Ignore single file error
+              }
+            }
+            parsedRepos[index].keyFiles = keyFiles;
+          }
+        }).catch(() => {
+          parsedRepos[index].fileTree = [];
+          parsedRepos[index].keyFiles = [];
+        });
+
+        await Promise.all([readmePromise, languagesPromise, treePromise]);
       });
 
       await Promise.all(detailPromises);

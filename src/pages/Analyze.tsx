@@ -123,6 +123,7 @@ export const Analyze: React.FC = () => {
     missingKeywords,
     careerAdvice,
     agentStatus,
+    statusMessage,
     error: agentError,
     setJdText,
     runAgent,
@@ -241,88 +242,91 @@ export const Analyze: React.FC = () => {
     );
   }
 
-  const isRunning =
-    agentStatus === 'step1' ||
-    agentStatus === 'step2' ||
-    agentStatus === 'step3';
+  const isRunning = [
+    'step1',
+    'step1_done',
+    'step2',
+    'step2_done',
+    'step3',
+    'step3_done'
+  ].includes(agentStatus);
+
+  let progressPercent = 0;
+  if (['step1_done', 'step2'].includes(agentStatus)) progressPercent = 33;
+  else if (['step2_done', 'step3'].includes(agentStatus)) progressPercent = 66;
+  else if (['step3_done', 'done'].includes(agentStatus)) progressPercent = 100;
+  else if (agentStatus === 'step1') progressPercent = 10;
+
+  const renderStep = (stepNum: number, label: string) => {
+    let status: 'pending' | 'active' | 'done' = 'pending';
+    
+    if (stepNum === 1) {
+      if (['step1_done', 'step2', 'step2_done', 'step3', 'step3_done', 'done'].includes(agentStatus)) {
+        status = 'done';
+      } else if (agentStatus === 'step1') {
+        status = 'active';
+      }
+    } else if (stepNum === 2) {
+      if (['step2_done', 'step3', 'step3_done', 'done'].includes(agentStatus)) {
+        status = 'done';
+      } else if (agentStatus === 'step2') {
+        status = 'active';
+      }
+    } else if (stepNum === 3) {
+      if (['step3_done', 'done'].includes(agentStatus)) {
+        status = 'done';
+      } else if (agentStatus === 'step3') {
+        status = 'active';
+      }
+    }
+
+    if (status === 'done') {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+          <span className="text-emerald-400 text-[10px] sm:text-xs font-semibold flex items-center gap-1">
+            {label} <span className="font-bold">✓</span>
+          </span>
+        </div>
+      );
+    }
+
+    if (status === 'active') {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.8)]"></span>
+          <span className="text-white text-[10px] sm:text-xs font-semibold flex items-center gap-1.5 animate-pulse">
+            {label}
+            <div className="w-2.5 h-2.5 border border-white/20 border-t-white rounded-full animate-spin"></div>
+          </span>
+        </div>
+      );
+    }
+
+    // Pending
+    return (
+      <div className="flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-zinc-700"></span>
+        <span className="text-zinc-500 text-[10px] sm:text-xs font-medium">{label}</span>
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
-      {/* Step Progress Indicator Bar (Visible when running or done) */}
-      {agentStatus !== 'idle' && (
-        <div className="mb-8 bg-[#121212] border border-zinc-900 rounded-xl p-4 flex items-center justify-center gap-6 text-[10px] font-semibold tracking-wider uppercase">
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                agentStatus === 'step1'
-                  ? 'bg-blue-400 animate-pulse'
-                  : agentStatus === 'step2' ||
-                    agentStatus === 'step3' ||
-                    agentStatus === 'done'
-                  ? 'bg-emerald-500'
-                  : 'bg-zinc-700'
-              }`}
-            ></span>
-            <span
-              className={
-                agentStatus === 'step1'
-                  ? 'text-white'
-                  : agentStatus === 'step2' ||
-                    agentStatus === 'step3' ||
-                    agentStatus === 'done'
-                  ? 'text-emerald-500'
-                  : 'text-zinc-500'
-              }
-            >
-              1. Rank Projects
-            </span>
-          </div>
-          <span className="text-zinc-750">→</span>
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                agentStatus === 'step2'
-                  ? 'bg-blue-400 animate-pulse'
-                  : agentStatus === 'step3' || agentStatus === 'done'
-                  ? 'bg-emerald-500'
-                  : 'bg-zinc-700'
-              }`}
-            ></span>
-            <span
-              className={
-                agentStatus === 'step2'
-                  ? 'text-white'
-                  : agentStatus === 'step3' || agentStatus === 'done'
-                  ? 'text-emerald-500'
-                  : 'text-zinc-500'
-              }
-            >
-              2. Tailor Resume
-            </span>
-          </div>
-          <span className="text-zinc-750">→</span>
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                agentStatus === 'step3'
-                  ? 'bg-blue-400 animate-pulse'
-                  : agentStatus === 'done'
-                  ? 'bg-emerald-500'
-                  : 'bg-zinc-700'
-              }`}
-            ></span>
-            <span
-              className={
-                agentStatus === 'step3'
-                  ? 'text-white'
-                  : agentStatus === 'done'
-                  ? 'text-emerald-500'
-                  : 'text-zinc-500'
-              }
-            >
-              3. Career Coach
-            </span>
-          </div>
+      {/* Thin Progress Bar at very top of page */}
+      <div 
+        className="fixed top-0 left-0 h-0.5 bg-emerald-500 z-[9999] transition-all duration-500 ease-out" 
+        style={{ width: `${progressPercent}%` }}
+      />
+
+      {/* Phase 0 Codebase Reading Banner */}
+      {reposLoading && (
+        <div className="mb-6 bg-zinc-950 border border-zinc-900 rounded-xl p-4 flex items-center justify-center gap-3 text-xs text-zinc-400">
+          <div className="w-3.5 h-3.5 border-2 border-zinc-800 border-t-white rounded-full animate-spin"></div>
+          <span>
+            Reading your codebase{repos.length > 0 ? ` across ${repos.length} repos` : ''}...
+          </span>
         </div>
       )}
 
@@ -421,22 +425,22 @@ export const Analyze: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: Results Details */}
-        <div className="lg:col-span-7">
-          {/* Running loading overlay */}
-          {isRunning && (
-            <div className="bg-[#121212] border border-zinc-900 rounded-xl p-12 flex flex-col items-center justify-center text-center space-y-4 h-96">
-              <div className="w-10 h-10 border-2 border-zinc-800 border-t-zinc-300 rounded-full animate-spin"></div>
-              <div className="space-y-1">
-                <h3 className="text-sm font-semibold text-white animate-pulse">
-                  {agentStatus === 'step1'
-                    ? 'Step 1/3 — Analyzing your GitHub projects...'
-                    : agentStatus === 'step2'
-                    ? 'Step 2/3 — Rewriting experience bullets...'
-                    : 'Step 3/3 — Preparing custom career advice...'}
-                </h3>
-                <p className="text-[10px] text-zinc-500">
-                  Llama agent is tailoring the resume content. Please stand by.
-                </p>
+        <div className="lg:col-span-7 space-y-6">
+          {/* Phase 1, 2, 3 Agent Status Bar */}
+          {agentStatus !== 'idle' && agentStatus !== 'error' && (
+            <div className="bg-[#121212] border border-zinc-800 rounded-xl p-5 flex flex-col items-center justify-center gap-4 text-center">
+              {/* Step indicators */}
+              <div className="flex items-center gap-4 sm:gap-6 justify-center flex-wrap">
+                {renderStep(1, 'Step 1: Ranking Projects')}
+                <span className="text-zinc-800">→</span>
+                {renderStep(2, 'Step 2: Rewriting Resume')}
+                <span className="text-zinc-800">→</span>
+                {renderStep(3, 'Step 3: Career Advice')}
+              </div>
+              
+              {/* Live status message */}
+              <div className="text-xs font-semibold text-zinc-350 bg-zinc-950/40 px-4 py-2 rounded-lg border border-zinc-900/60 max-w-md w-full">
+                {statusMessage || 'Initializing...'}
               </div>
             </div>
           )}
@@ -466,9 +470,9 @@ export const Analyze: React.FC = () => {
             </div>
           )}
 
-          {/* Done State: Show Tab Results */}
-          {agentStatus === 'done' && tailoredResume && (
-            <div className="space-y-6 animate-fadeIn">
+          {/* Done State: Show Tab Results (Fades in smoothly) */}
+          {tailoredResume && (
+            <div className={`space-y-6 transition-all duration-700 ${agentStatus === 'done' ? 'opacity-100 translate-y-0' : 'opacity-0 h-0 overflow-hidden pointer-events-none'}`}>
               {/* Tab Navigation header */}
               <div className="flex border-b border-zinc-900">
                 <button
