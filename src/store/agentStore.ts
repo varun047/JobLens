@@ -16,53 +16,26 @@ interface AgentState {
   resetAgent: () => void;
 }
 
-function cleanJsonResponse(raw: string): string {
-  return raw
-    .replace(/```json/gi, '')
-    .replace(/```/g, '')
-    .trim();
-}
-
-async function callGroqAPI(apiKey: string, prompt: string): Promise<any> {
-  const response = await fetch(
-    'https://api.groq.com/openai/v1/chat/completions',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.1,
-        response_format: { type: 'json_object' },
-      }),
-    }
-  );
+async function callOllamaAPI(prompt: string): Promise<any> {
+  const response = await fetch('http://localhost:11434/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama3.2',
+      messages: [{ role: 'user', content: prompt }],
+      stream: false
+    })
+  });
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Groq API error: ${response.status} - ${errText}`);
+    throw new Error(`Ollama API error: ${response.status} - ${errText}`);
   }
 
   const data = await response.json();
-  if (
-    !data.choices ||
-    data.choices.length === 0 ||
-    !data.choices[0].message ||
-    !data.choices[0].message.content
-  ) {
-    throw new Error('Invalid response structure received from Groq.');
-  }
-
-  const cleanText = cleanJsonResponse(data.choices[0].message.content);
-  return JSON.parse(cleanText);
+  const textContent = data.message.content;
+  const clean = textContent.replace(/```json|```/gi, '').trim();
+  return JSON.parse(clean);
 }
 
 export const useAgentStore = create<AgentState>((set, get) => ({
@@ -93,15 +66,6 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       return;
     }
 
-    const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-    if (!apiKey) {
-      set({
-        error: 'VITE_GROQ_API_KEY is not configured in your .env file.',
-        agentStatus: 'error',
-      });
-      return;
-    }
-
     set({ error: null, agentStatus: 'step1' });
 
     try {
@@ -129,7 +93,7 @@ Return ONLY raw JSON matching this schema:
   ]
 }`;
 
-      const step1Result = await callGroqAPI(apiKey, step1Prompt);
+      const step1Result = await callOllamaAPI(step1Prompt);
       if (!step1Result.rankedProjects || !Array.isArray(step1Result.rankedProjects)) {
         throw new Error('Project ranker response did not contain rankedProjects list.');
       }
@@ -179,7 +143,7 @@ Return ONLY raw JSON matching this schema:
 
 Return scores as whole numbers like 62 or 78, NOT decimals like 0.62.`;
 
-      const step2Result = await callGroqAPI(apiKey, step2Prompt);
+      const step2Result = await callOllamaAPI(step2Prompt);
       if (!step2Result.tailoredResume || !step2Result.atsScore) {
         throw new Error('Resume rewriter response was missing required fields.');
       }
@@ -206,7 +170,7 @@ Return ONLY raw JSON matching this schema:
   "interviewTopics": ["string"]
 }`;
 
-      const step3Result = await callGroqAPI(apiKey, step3Prompt);
+      const step3Result = await callOllamaAPI(step3Prompt);
       const careerAdvice: CareerAdvice = {
         strengths: step3Result.strengths || [],
         gaps: step3Result.gaps || [],
