@@ -1,4 +1,4 @@
--- Supabase Database Schema for ResumeAI
+-- Supabase Database Schema for JobLens
 
 -- 1. Create public.users table (mirrors auth.users)
 CREATE TABLE IF NOT EXISTS public.users (

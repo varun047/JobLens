@@ -134,7 +134,7 @@ export const useTemplateStore = create<TemplateState>()(
       }
     }),
     {
-      name: 'resumeai-template-state'
+      name: 'joblens-template-state'
     }
   )
 );

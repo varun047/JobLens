@@ -517,7 +517,7 @@ Make it professional and accurate. Return ONLY raw markdown.`;
 
       const base64Content = btoa(unescape(encodeURIComponent(content)));
       const body: any = {
-        message: sha ? 'Update README.md via ResumeAI' : 'Add README.md via ResumeAI',
+        message: sha ? 'Update README.md via JobLens' : 'Add README.md via JobLens',
         content: base64Content,
       };
       if (sha) {

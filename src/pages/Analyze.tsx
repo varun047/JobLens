@@ -1583,7 +1583,7 @@ export const Analyze: React.FC = () => {
                   <span>📂</span> Select GitHub Repositories
                 </h2>
                 <p className="text-zinc-550 dark:text-zinc-500 text-[10px] mt-0.5 font-medium">
-                  Toggle which projects are used by ResumeAI to rank and rewrite bullets.
+                  Toggle which projects are used by JobLens to rank and rewrite bullets.
                 </p>
               </div>
               <button 

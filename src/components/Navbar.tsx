@@ -125,7 +125,7 @@ export const Navbar: React.FC = () => {
               </svg>
             </div>
             <span className="font-extrabold text-base tracking-tight text-white">
-              ResumeAI
+              JobLens
             </span>
           </div>
 

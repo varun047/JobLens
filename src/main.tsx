@@ -6,7 +6,7 @@ import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider attribute="class" defaultTheme="dark" storageKey="resumeai-theme">
+    <ThemeProvider attribute="class" defaultTheme="dark" storageKey="joblens-theme">
       <App />
     </ThemeProvider>
   </StrictMode>,

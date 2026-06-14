@@ -27,12 +27,12 @@ export const Login: React.FC = () => {
       <div className="w-full max-w-sm bg-white dark:bg-[#141414] border border-zinc-200 dark:border-zinc-900 rounded-2xl p-8 shadow-2xl dark:shadow-none relative z-10 flex flex-col items-center transition-colors">
         {/* Logo Icon */}
         <div className="w-10 h-10 rounded-xl bg-zinc-950 dark:bg-white flex items-center justify-center mb-6 shadow-lg shadow-black/5 dark:shadow-white/5 transition-colors">
-          <span className="text-white dark:text-[#0f0f0f] font-black text-lg">R</span>
+          <span className="text-white dark:text-[#0f0f0f] font-black text-lg">J</span>
         </div>
 
         {/* Title */}
         <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight mb-2 animate-fadeIn">
-          Welcome to ResumeAI
+          Welcome to JobLens
         </h1>
         <p className="text-zinc-500 text-xs text-center mb-8">
           The agentic resume tailoring tool. Connect your GitHub and generate

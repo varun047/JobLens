@@ -485,7 +485,7 @@ Return ONLY raw JSON matching this schema:
       },
     }),
     {
-      name: 'resumeai-agent-state',
+      name: 'joblens-agent-state',
       partialize: (state) => ({
         jdText: state.jdText,
         jobUrl: state.jobUrl,
