@@ -87,6 +87,53 @@ async function callOllamaAPI(prompt: string, timeoutMs: number = 180000, customO
   }
 }
 
+async function callOllamaAPIRaw(prompt: string, timeoutMs: number = 180000, customOptions?: any): Promise<{ parsed: any; rawText: string }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch('http://localhost:11434/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama3.2',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a JSON API. You only output valid JSON objects. Never output text, explanations, or markdown. Always start with { and end with }.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        stream: false,
+        options: {
+          num_predict: 2000,
+          temperature: 0,
+          ...customOptions
+        }
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Ollama API error: ${response.status} - ${errText}`);
+    }
+
+    const data = await response.json();
+    const textContent = data.message.content;
+    return { parsed: extractJSON(textContent), rawText: textContent };
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Ollama request timed out. Please check if Ollama is running properly on your machine.');
+    }
+    throw error;
+  }
+}
+
+
 export const useAgentStore = create<AgentState>()(
   persist(
     (set, get) => ({
@@ -257,6 +304,13 @@ Return ONLY raw JSON:
               bullets: proj.bullets.slice(0, 2)
             }));
 
+            // Before Step 2A call
+            console.log('Base resume being sent:', {
+              experienceCount: trimmedExperience.length,
+              projectCount: trimmedProjects.length,
+              skillCount: baseResume.skills.length
+            });
+
             // Call 2A — Rewrite Experience + Skills only
             set({ agentStatus: 'step2a', statusMessage: 'Rewriting experience and skills...' });
 
@@ -271,6 +325,14 @@ ${JSON.stringify(trimmedExperience)}
 
 Current skills: ${baseResume.skills.join(', ')}
 
+IMPORTANT SKILLS TAILORING DIRECTIONS:
+1. Reorder the skills: Place the technical/hard skills that directly match or support the Job Description at the beginning of the "skills" array. Move less relevant or general tools to the end of the array. Do NOT output them in the same original order.
+2. Inject soft skills: Scan the Job Description for crucial soft skills (e.g., Communication, Project Management, Collaboration, Mentoring, Agile, Leadership, Problem Solving) and inject the top 4-5 relevant soft skills directly into the "skills" array.
+3. Add missing technical keywords: If the Job Description requires relevant technical skills that are missing from "Current skills" but are supported by the experience bullets, add them to the "skills" array.
+Ensure the outputted "skills" array is a refined, distinct, and comprehensive list of both hard and soft skills.
+
+atsScore.before and atsScore.after must be whole numbers between 0 and 100, NOT decimals.
+
 Return ONLY raw JSON:
 {
   "skills": ["string"],
@@ -284,8 +346,16 @@ Return ONLY raw JSON:
   "missingKeywords": ["string"]
 }`;
 
-            const result2A = await callOllamaAPI(prompt2A, 180000, { num_predict: 3000, temperature: 0 });
-            if (!result2A.experience || !result2A.skills || !result2A.atsScore) {
+            const response2A = await callOllamaAPIRaw(prompt2A, 180000, { num_predict: 3000, temperature: 0 });
+            const rawText = response2A.rawText;
+            const result2A = response2A.parsed;
+
+            // After Step 2A call
+            console.log('Step 2A raw response:', rawText.slice(0, 200));
+            console.log('Step 2A parsed:', result2A);
+
+            const atsScoreResult = result2A?.atsScore || result2A?.ats_score;
+            if (!result2A.experience || !result2A.skills || !atsScoreResult) {
               throw new Error('Call 2A (Experience & Skills) response was missing required fields.');
             }
 
@@ -314,6 +384,10 @@ Return ONLY raw JSON:
 }`;
 
             const result2B = await callOllamaAPI(prompt2B, 180000, { num_predict: 2000, temperature: 0 });
+            
+            // After Step 2B call  
+            console.log('Step 2B parsed:', result2B);
+
             if (!result2B.projects) {
               throw new Error('Call 2B (Projects) response was missing required fields.');
             }
@@ -327,17 +401,33 @@ Return ONLY raw JSON:
               phone: baseResume.phone,
               linkedin: baseResume.linkedin || '',
               github: baseResume.github || '',
-              skills: result2A.skills,
-              experience: result2A.experience,
-              projects: result2B.projects,
+              // USE AI RESULTS — not base resume
+              skills: result2A?.skills?.length > 0 
+                ? result2A.skills 
+                : baseResume.skills,
+              experience: result2A?.experience?.length > 0 
+                ? result2A.experience 
+                : baseResume.experience,
+              projects: result2B?.projects?.length > 0 
+                ? result2B.projects 
+                : baseResume.projects,
               education: baseResume.education,
               achievements: baseResume.achievements || []
             };
 
+            // Final merged resume
+            console.log('Final tailored resume:', tailoredResume);
+
+            // Extract atsScore safely
+            const atsScore = {
+              before: result2A?.atsScore?.before || result2A?.ats_score?.before || 0,
+              after: result2A?.atsScore?.after || result2A?.ats_score?.after || 0
+            };
+
             step2Result = {
               tailoredResume,
-              atsScore: result2A.atsScore,
-              missingKeywords: result2A.missingKeywords || []
+              atsScore,
+              missingKeywords: result2A.missingKeywords || result2A.missing_keywords || []
             };
 
             set({
@@ -346,6 +436,7 @@ Return ONLY raw JSON:
               missingKeywords: step2Result.missingKeywords,
               agentStatus: 'step2b_done',
               statusMessage: 'Resume tailored successfully ✓'
+
             });
           }
 

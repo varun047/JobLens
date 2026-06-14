@@ -8,8 +8,8 @@ import { useAgentStore } from '../store/agentStore';
 import { saveDraft, loadDraft, deleteDraft } from '../lib/saveDraft';
 import { downloadResumePDF, type ResumeStyle } from '../lib/generatePDF';
 import { extractJobFromUrl, type ExtractedJob } from '../lib/jobBoardExtractor';
-import { StylePicker } from '../components/StylePicker';
 import { researchCompany, type CompanyInsight } from '../lib/companyResearch';
+
 
 const diffText = (oldText: string, newText: string) => {
   if (!oldText) {
@@ -72,8 +72,8 @@ const CircularProgress = ({
   size?: number;
   label: string;
 }) => {
-  const radius = 45;
   const strokeWidth = 6;
+  const radius = (size - strokeWidth - 4) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
@@ -176,6 +176,7 @@ export const Analyze: React.FC = () => {
   const [companyInsight, setCompanyInsight] = useState<CompanyInsight | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<ResumeStyle>('modern');
   const [researchingCompany, setResearchingCompany] = useState(false);
+  const [showStylePicker, setShowStylePicker] = useState(false);
 
   // Redesign state variables
   const [showRepoModal, setShowRepoModal] = useState(false);
@@ -210,25 +211,25 @@ export const Analyze: React.FC = () => {
   };
 
   useEffect(() => {
-    if (agentStatus === 'done') {
-      if (selectedCompany) {
-        setResearchingCompany(true);
-        researchCompany(selectedCompany, selectedJobTitle)
-          .then(insight => {
-            setCompanyInsight(insight);
-            setSelectedStyle(insight.recommendedStyle);
-          })
-          .catch((err) => {
-            console.error('Failed to research company:', err);
-            setSelectedStyle('modern');
-          })
-          .finally(() => setResearchingCompany(false));
-      } else {
-        setCompanyInsight(null);
-        setSelectedStyle('modern');
-      }
+    if (agentStatus === 'done' && selectedCompany) {
+      console.log('Triggering company research for:', selectedCompany)
+      setResearchingCompany(true)
+      researchCompany(selectedCompany, selectedJobTitle)
+        .then(insight => {
+          console.log('Company insight:', insight)
+          setCompanyInsight(insight)
+          setSelectedStyle(insight.recommendedStyle)
+          setShowStylePicker(true)
+        })
+        .catch(err => {
+          console.error('Company research failed:', err)
+          setSelectedStyle('modern')
+          setShowStylePicker(true)
+        })
+        .finally(() => setResearchingCompany(false))
     }
-  }, [agentStatus, selectedCompany, selectedJobTitle]);
+  }, [agentStatus]);
+
 
   // Automatically show save modal and collapse config panel when analysis finishes
   useEffect(() => {
@@ -448,10 +449,8 @@ export const Analyze: React.FC = () => {
       });
 
       await deleteDraft(user.id);
-      clearAnalysis();
-      setToastMessage('✓ Analysis saved to history');
+      setToastMessage('✓ Saved! View in History →');
       setShowSaveModal(false);
-      navigate('/history');
     } catch (err) {
       console.error('Failed to save analysis:', err);
       alert('Error saving analysis');
@@ -459,6 +458,7 @@ export const Analyze: React.FC = () => {
       setSavingAnalysis(false);
     }
   };
+
 
   const copySectionToClipboard = (sectionName: string, textToCopy: string) => {
     navigator.clipboard.writeText(textToCopy);
@@ -1313,7 +1313,7 @@ export const Analyze: React.FC = () => {
               <h3 className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">
                 Awaiting Analysis
               </h3>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-600 mt-1 max-w-xs leading-relaxed">
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-605 mt-1 max-w-xs leading-relaxed">
                 Paste a job description on the left, check your GitHub repositories, and trigger tailoring to see results.
               </p>
             </div>
@@ -1325,18 +1325,6 @@ export const Analyze: React.FC = () => {
               {showConfig ? (
                 /* TABBED VIEW (Used when inputs config is visible) */
                 <div className="space-y-6 animate-fadeIn">
-                  {/* Style Picker */}
-                  <StylePicker
-                    company={selectedCompany || 'Company'}
-                    jobTitle={selectedJobTitle || 'Job Opening'}
-                    selectedStyle={selectedStyle}
-                    onStyleSelected={setSelectedStyle}
-                    companyInsight={companyInsight}
-                    researchingCompany={researchingCompany}
-                    onGenerate={handleDownloadPDF}
-                    generating={downloadingPDF}
-                  />
-
                   {/* Tab Navigation header */}
                   <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-900 pr-2">
                     <div className="flex">
@@ -1391,7 +1379,7 @@ export const Analyze: React.FC = () => {
                   {/* Left Side: Resume Diffs (7 Cols) */}
                   <div className="lg:col-span-7 space-y-6">
                     <div className="flex justify-between items-center pb-2 border-b border-zinc-200 dark:border-zinc-900">
-                      <h4 className="text-xs font-black text-zinc-500 dark:text-zinc-450 uppercase tracking-widest flex items-center gap-2">
+                      <h4 className="text-xs font-black text-zinc-505 dark:text-zinc-450 uppercase tracking-widest flex items-center gap-2">
                         <span>📄</span> Tailored Resume Preview & Diffs
                       </h4>
                       <button
@@ -1406,18 +1394,6 @@ export const Analyze: React.FC = () => {
 
                   {/* Right Side: Score, Keywords, Advice & Styles (5 Cols) */}
                   <div className="lg:col-span-5 space-y-6">
-                    {/* Style Picker */}
-                    <StylePicker
-                      company={selectedCompany || 'Company'}
-                      jobTitle={selectedJobTitle || 'Job Opening'}
-                      selectedStyle={selectedStyle}
-                      onStyleSelected={setSelectedStyle}
-                      companyInsight={companyInsight}
-                      researchingCompany={researchingCompany}
-                      onGenerate={handleDownloadPDF}
-                      generating={downloadingPDF}
-                    />
-
                     {/* ATS match details */}
                     <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-2xl p-6 space-y-6 shadow-sm">
                       <h4 className="text-[11px] font-black text-zinc-505 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
@@ -1434,6 +1410,117 @@ export const Analyze: React.FC = () => {
                       {renderCareerAdviceTab()}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Bottom PDF download & Style Picker Section */}
+              {agentStatus === 'done' && (
+                <div className="mt-10 border-t border-zinc-800 pt-8">
+                  <h3 className="text-lg font-bold text-white mb-2">
+                    Download Your Tailored Resume
+                  </h3>
+                  
+                  {/* Company Research Loading */}
+                  {researchingCompany && (
+                    <div className="flex items-center gap-3 p-4 bg-zinc-900 
+                                    rounded-xl border border-zinc-800 mb-6">
+                      <div className="w-4 h-4 border-2 border-emerald-500 
+                                      border-t-transparent rounded-full animate-spin" />
+                      <p className="text-zinc-400 text-sm">
+                        Researching {selectedCompany} culture and style preferences...
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Company Insight Card */}
+                  {companyInsight && !researchingCompany && (
+                    <div className="p-5 bg-emerald-950/30 border border-emerald-900/50 
+                                    rounded-xl mb-6">
+                      <p className="text-xs font-bold text-emerald-400 uppercase 
+                                    tracking-wider mb-2">
+                        ★ {selectedCompany} Style Recommendation
+                      </p>
+                      <p className="text-emerald-200 text-sm mb-3">
+                        {companyInsight.reason}
+                      </p>
+                      <div className="space-y-1">
+                        {companyInsight.tips?.map((tip, i) => (
+                          <p key={i} className="text-xs text-emerald-300 flex gap-2">
+                            <span>→</span><span>{tip}</span>
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Style Picker */}
+                  {(showStylePicker || !researchingCompany) && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                      {[
+                        {
+                          id: 'classic',
+                          name: 'Classic',
+                          desc: 'Traditional ATS-safe',
+                          best: 'Banks, PSUs, Enterprise'
+                        },
+                        {
+                          id: 'modern',
+                          name: 'Modern',
+                          desc: 'Clean with accent line',
+                          best: 'Tech startups, SaaS'
+                        },
+                        {
+                          id: 'minimal',
+                          name: 'Minimal',
+                          desc: 'Ultra clean whitespace',
+                          best: 'Design, Product, Creative'
+                        },
+                        {
+                          id: 'two-column',
+                          name: 'Two Column',
+                          desc: 'Sidebar + main content',
+                          best: 'Technical, Engineering'
+                        }
+                      ].map(style => (
+                        <button
+                          key={style.id}
+                          onClick={() => setSelectedStyle(style.id as ResumeStyle)}
+                          className={`relative p-4 rounded-xl border text-left transition-all ${
+                            selectedStyle === style.id
+                              ? 'border-white bg-zinc-800'
+                              : 'border-zinc-800 bg-zinc-900 hover:border-zinc-600'
+                          }`}
+                        >
+                          {/* Recommended badge */}
+                          {style.id === companyInsight?.recommendedStyle && (
+                            <span className="absolute -top-2 -right-2 bg-emerald-600 
+                                             text-white text-[10px] px-2 py-0.5 
+                                             rounded-full font-bold">
+                              ★ Best for {selectedCompany}
+                            </span>
+                          )}
+                          <p className="font-bold text-white text-sm mb-1">{style.name}</p>
+                          <p className="text-zinc-400 text-xs mb-2">{style.desc}</p>
+                          <p className="text-zinc-650 text-[10px]">Best for: {style.best}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Download Button */}
+                  <button
+                    onClick={handleDownloadPDF}
+                    disabled={downloadingPDF || !tailoredResume}
+                    className="w-full md:w-auto bg-white hover:bg-zinc-200 
+                               text-black font-bold px-8 py-3 rounded-xl 
+                               text-sm transition-colors disabled:opacity-50
+                               flex items-center gap-2"
+                  >
+                    {downloadingPDF
+                      ? 'Generating PDF...'
+                      : `⬇ Download ${selectedStyle.charAt(0).toUpperCase() + selectedStyle.slice(1)} Resume PDF`
+                    }
+                  </button>
                 </div>
               )}
             </div>
@@ -1618,7 +1705,7 @@ export const Analyze: React.FC = () => {
                   type="text"
                   value={saveJobTitle}
                   onChange={(e) => setSaveJobTitle(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-250 dark:border-zinc-850 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-700 transition-colors"
+                  className="w-full bg-zinc-50 dark:bg-zinc-955 border border-zinc-250 dark:border-zinc-850 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-700 transition-colors"
                 />
               </div>
             </div>
@@ -1634,9 +1721,9 @@ export const Analyze: React.FC = () => {
               </button>
               <button
                 onClick={() => setShowSaveModal(false)}
-                className="flex-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-750 dark:text-zinc-200 px-4 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors"
+                className="flex-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-755 dark:text-zinc-200 px-4 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors"
               >
-                Cancel
+                Skip
               </button>
             </div>
           </div>
@@ -1645,8 +1732,20 @@ export const Analyze: React.FC = () => {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 text-emerald-600 dark:text-emerald-400 px-4.5 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 z-50 text-xs font-semibold animate-slideUp">
-          <span className="text-sm">✓</span> {toastMessage}
+        <div className="fixed bottom-6 right-6 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 text-emerald-650 dark:text-emerald-400 px-4.5 py-3 rounded-xl shadow-2xl flex items-center gap-3.5 z-50 text-xs font-semibold animate-slideUp">
+          <span className="text-sm">✓</span>
+          <span>{toastMessage}</span>
+          {toastMessage.includes('Saved') && (
+            <button
+              onClick={() => {
+                navigate('/history');
+                setToastMessage(null);
+              }}
+              className="ml-2 bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              View History
+            </button>
+          )}
         </div>
       )}
     </div>
