@@ -5,6 +5,7 @@ import { useRepoStore } from '../store/repoStore';
 import { useResumeStore } from '../store/resumeStore';
 import { ThemeToggle } from './ThemeToggle';
 import { useHistoryStore } from '../store/historyStore';
+import logoImg from '../assets/logo.png';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -116,13 +117,10 @@ export const Navbar: React.FC = () => {
       {/* Desktop Vertical Sidebar */}
       <aside className="md:flex hidden flex-col w-64 h-screen fixed left-0 top-0 bg-gradient-to-b from-teal-955/95 via-emerald-950/95 to-zinc-955/98 border-r border-white/5 py-8 z-50 justify-between px-4">
         <div className="flex flex-col">
-          {/* Leaf Logo Header */}
+          {/* Logo Header */}
           <div className="flex items-center gap-3 px-2 mb-10">
-            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 shadow-inner">
-              <svg className="w-4.5 h-4.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747C19.78 12.227 16.5 12 12 12c-4.5 0-7.78.227-8.716 2.253A9.004 9.004 0 0012 21z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 12V3m0 0C9.75 5.25 7 9.75 7 12m5-9c2.25 2.25 5 6.75 5 9" />
-              </svg>
+            <div className="w-8 h-8 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center shadow-inner">
+              <img src={logoImg} alt="JobLens Logo" className="w-full h-full object-cover scale-[1.75] -translate-y-[15%]" />
             </div>
             <span className="font-extrabold text-base tracking-tight text-white">
               JobLens
