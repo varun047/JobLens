@@ -112,6 +112,12 @@ const CircularProgress = ({
   );
 };
 
+const getAtsColor = (score: number) => {
+  if (score >= 80) return 'text-emerald-650 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/30';
+  if (score >= 60) return 'text-amber-650 dark:text-amber-400 bg-amber-50 dark:bg-amber-955/10 border-amber-200 dark:border-amber-900/30';
+  return 'text-red-650 dark:text-red-400 bg-red-50 dark:bg-red-955/10 border-red-200 dark:border-red-900/30';
+};
+
 export const Analyze: React.FC = () => {
   const { user } = useAuthStore();
   const { repos, loading: reposLoading, fetchRepos, repoAnalyses, analyzeAllRepos } = useRepoStore();
@@ -171,6 +177,20 @@ export const Analyze: React.FC = () => {
   const [selectedStyle, setSelectedStyle] = useState<ResumeStyle>('modern');
   const [researchingCompany, setResearchingCompany] = useState(false);
 
+  // Redesign state variables
+  const [showRepoModal, setShowRepoModal] = useState(false);
+  const [repoSearch, setRepoSearch] = useState('');
+  const [showConfig, setShowConfig] = useState(true);
+
+  const filteredRepos = repos.filter(repo => {
+    const q = repoSearch.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      repo.name.toLowerCase().includes(q) ||
+      (repo.description && repo.description.toLowerCase().includes(q))
+    );
+  });
+
   const handleDownloadPDF = async () => {
     if (!tailoredResume) return;
     setDownloadingPDF(true);
@@ -210,10 +230,11 @@ export const Analyze: React.FC = () => {
     }
   }, [agentStatus, selectedCompany, selectedJobTitle]);
 
-  // Automatically show save modal when analysis finishes
+  // Automatically show save modal and collapse config panel when analysis finishes
   useEffect(() => {
     if (agentStatus === 'done') {
       setShowSaveModal(true);
+      setShowConfig(false);
     }
   }, [agentStatus]);
 
@@ -574,8 +595,426 @@ export const Analyze: React.FC = () => {
     );
   };
 
+  const renderResumePreview = () => {
+    if (!tailoredResume) return null;
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        {/* Contact Info Header */}
+        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white leading-tight">
+              {tailoredResume.name}
+            </h3>
+            <p className="text-[11px] text-zinc-550 dark:text-zinc-400 mt-0.5">
+              {tailoredResume.email} | {tailoredResume.phone}
+            </p>
+          </div>
+          <button
+            onClick={() =>
+              copySectionToClipboard(
+                'contact',
+                `${tailoredResume.name}\n${tailoredResume.email} | ${tailoredResume.phone}`
+              )
+            }
+            className="text-[10px] text-zinc-655 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2.5 py-1.5 rounded-lg bg-zinc-105 dark:bg-zinc-955 transition-all cursor-pointer shadow-sm active:scale-95"
+          >
+            {copiedSection === 'contact' ? 'Copied!' : 'Copy Info'}
+          </button>
+        </div>
+
+        {/* Skills Grid */}
+        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-4">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider">
+              Reordered Skills Stack
+            </span>
+            <button
+              onClick={() =>
+                copySectionToClipboard(
+                  'skills',
+                  tailoredResume.skills.join(', ')
+                )
+              }
+              className="text-[9px] text-zinc-655 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors shadow-sm active:scale-95"
+            >
+              {copiedSection === 'skills' ? 'Copied!' : 'Copy Skills'}
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Left: Base Skills */}
+            <div className="space-y-1">
+              <span className="text-[9px] font-bold text-zinc-550 dark:text-zinc-650 uppercase">
+                Original Skills
+              </span>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {baseResume.skills.map((s, idx) => (
+                  <span
+                    key={idx}
+                    className="bg-zinc-100 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-900 text-zinc-600 dark:text-zinc-450 px-2 py-0.5 rounded text-[10px]"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+            {/* Right: Tailored Skills */}
+            <div className="space-y-1 border-l border-zinc-200 dark:border-zinc-900 pl-4">
+              <span className="text-[9px] font-bold text-zinc-550 dark:text-zinc-650 uppercase">
+                Tailored Reordering
+              </span>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {tailoredResume.skills.map((s, idx) => {
+                  const isNew = !baseResume.skills.some(
+                    (bs) => bs.toLowerCase() === s.toLowerCase()
+                  );
+                  return (
+                    <span
+                      key={idx}
+                      className={`px-2 py-0.5 rounded text-[10px] border ${
+                        isNew
+                          ? 'bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30 font-semibold'
+                          : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-850 dark:text-zinc-200'
+                      }`}
+                    >
+                      {s}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Ranked projects chosen and why */}
+        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-4">
+          <span className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-wider block">
+            Targeted Repositories Selected
+          </span>
+          <div className="space-y-3">
+            {rankedProjects.map((proj, idx) => (
+              <div
+                key={idx}
+                className="p-3 bg-zinc-100 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-900 rounded-xl space-y-1.5"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-zinc-900 dark:text-white">
+                    {proj.name}
+                  </span>
+                  <span className="bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/30 px-1.5 py-0.5 rounded-full text-[9px] font-bold">
+                    Relevance: {proj.relevanceScore < 1 ? Math.round(proj.relevanceScore * 100) : Math.round(proj.relevanceScore)}%
+                  </span>
+                </div>
+                <p className="text-[10px] text-zinc-600 dark:text-zinc-505 leading-relaxed">
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-405">
+                    Recruiter Match Logic:
+                  </span>{' '}
+                  {proj.reason}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Experience Comparison Diffs */}
+        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-6">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-bold text-zinc-505 dark:text-zinc-400 uppercase tracking-wider">
+              Work Experience Bullet Diffs
+            </span>
+            <button
+              onClick={() =>
+                copySectionToClipboard(
+                  'exp',
+                  formatExperienceAsText(tailoredResume.experience)
+                )
+              }
+              className="text-[9px] text-zinc-650 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors shadow-sm active:scale-95"
+            >
+              {copiedSection === 'exp' ? 'Copied!' : 'Copy Experience'}
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {tailoredResume.experience.map((exp, idx) => {
+              const originalExp = baseResume.experience[idx];
+              return (
+                <div key={idx} className="space-y-3 border-t border-zinc-200 dark:border-zinc-900 pt-5 first:border-0 first:pt-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-xs font-bold text-zinc-900 dark:text-white">
+                        {exp.role} at {exp.company}
+                      </h4>
+                      <p className="text-[9px] text-zinc-500 dark:text-zinc-450">{exp.duration}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2.5">
+                    {exp.bullets.map((bullet, bulletIdx) => {
+                      const origBullet = originalExp?.bullets?.[bulletIdx] || '';
+                      return (
+                        <div
+                          key={bulletIdx}
+                          className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-zinc-100/60 dark:bg-zinc-955/40 rounded-xl border border-zinc-200 dark:border-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-800 transition-colors"
+                        >
+                          <div className="text-[10px] text-zinc-600 dark:text-zinc-450 italic leading-relaxed">
+                            <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-600 block mb-1">
+                              Original Bullet
+                            </span>
+                            {origBullet || 'N/A'}
+                          </div>
+                          <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-900 pt-2.5 md:pt-0 md:pl-4">
+                            <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500/80 block mb-1">
+                              Tailored Rewrite
+                            </span>
+                            {diffText(origBullet, bullet)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tailored Projects Section Diffs */}
+        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-6">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider">
+              Tailored Projects Bullet Diffs
+            </span>
+            <button
+              onClick={() =>
+                copySectionToClipboard(
+                  'projects',
+                  formatProjectsAsText(tailoredResume.projects)
+                )
+              }
+              className="text-[9px] text-zinc-655 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors shadow-sm active:scale-95"
+            >
+              {copiedSection === 'projects' ? 'Copied!' : 'Copy Projects'}
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {tailoredResume.projects.map((proj, idx) => {
+              const originalProj = baseResume.projects.find(
+                (p) => p.name.toLowerCase() === proj.name.toLowerCase()
+              );
+              return (
+                <div key={idx} className="space-y-3 border-t border-zinc-200 dark:border-zinc-900 pt-5 first:border-0 first:pt-0">
+                  <div>
+                    <h4 className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                      {proj.name}
+                      <span className="flex gap-1">
+                        {proj.tech.map((t, tIdx) => (
+                          <span
+                            key={tIdx}
+                            className="bg-zinc-100 dark:bg-zinc-900 text-zinc-650 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 px-1.5 py-0.5 rounded text-[8px]"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </span>
+                    </h4>
+                  </div>
+                  <div className="space-y-2.5">
+                    {proj.bullets.map((bullet, bulletIdx) => {
+                      const origBullet = originalProj?.bullets?.[bulletIdx] || '';
+                      return (
+                        <div
+                          key={bulletIdx}
+                          className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-zinc-105/60 dark:bg-zinc-955/40 rounded-xl border border-zinc-200 dark:border-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-800 transition-colors"
+                        >
+                          <div className="text-[10px] text-zinc-650 dark:text-zinc-450 italic leading-relaxed">
+                            <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-600 block mb-1">
+                              Original Bullet
+                            </span>
+                            {origBullet || 'N/A'}
+                          </div>
+                          <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-900 pt-2.5 md:pt-0 md:pl-4">
+                            <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500/80 block mb-1">
+                              Tailored Rewrite
+                            </span>
+                            {diffText(origBullet, bullet)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Education Display */}
+        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-4">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider">
+              Education History
+            </span>
+            <button
+              onClick={() =>
+                copySectionToClipboard(
+                  'edu',
+                  tailoredResume.education
+                    .map(
+                      (edu) =>
+                        `**${edu.institution}**\n${edu.degree} (${edu.year})`
+                    )
+                    .join('\n\n')
+                )
+              }
+              className="text-[9px] text-zinc-650 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors shadow-sm active:scale-95"
+            >
+              {copiedSection === 'edu' ? 'Copied!' : 'Copy Edu'}
+            </button>
+          </div>
+          <div className="space-y-3">
+            {tailoredResume.education.map((edu, idx) => (
+              <div key={idx} className="text-left">
+                <p className="text-xs font-semibold text-zinc-900 dark:text-white">
+                  {edu.institution}
+                </p>
+                <p className="text-[10px] text-zinc-600 dark:text-zinc-400 mt-0.5">
+                  {edu.degree} —{' '}
+                  <span className="text-zinc-500 dark:text-zinc-500">{edu.year}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAtsScoreTab = () => {
+    if (!atsScore) return null;
+    return (
+      <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-6 space-y-8 animate-fadeIn">
+        {/* Score rings */}
+        <div className="flex justify-around items-center py-6 border-b border-zinc-200 dark:border-zinc-900">
+          <CircularProgress
+            score={atsScore.before}
+            colorClass="text-zinc-500 dark:text-zinc-600"
+            label="Original ATS Score"
+            size={90}
+          />
+          <div className="text-2xl text-zinc-400 dark:text-zinc-700 font-light">→</div>
+          <CircularProgress
+            score={atsScore.after}
+            colorClass="text-emerald-600 dark:text-emerald-500"
+            label="Tailored ATS Score"
+            size={90}
+          />
+        </div>
+
+        {/* Missing keyword badges */}
+        <div className="space-y-3">
+          <span className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-wider block">
+            Target Job Keywords Addressed
+          </span>
+          {missingKeywords.length === 0 ? (
+            <p className="text-[11px] text-zinc-600 dark:text-zinc-500">
+              Excellent! The resume rewriter did not detect any key missing terms.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {missingKeywords.map((kw, idx) => (
+                <span
+                  key={idx}
+                  className="bg-red-50 dark:bg-red-955/20 text-red-655 dark:text-red-400 border border-red-200/50 dark:border-red-900/35 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+                >
+                  {kw}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Scoring detail note */}
+        <div className="bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 p-4 rounded-xl">
+          <h5 className="text-xs font-semibold text-zinc-900 dark:text-white mb-1">
+            Scoring Methodology
+          </h5>
+          <p className="text-[10px] text-zinc-500 dark:text-zinc-550 leading-relaxed">
+            Before score maps your original profile matching against the JD constraints. 
+            After score estimates the improved match rate following skill reordering and target keyword injections.
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  const renderCareerAdviceTab = () => {
+    if (!careerAdvice) return null;
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        {/* Action Item highlight */}
+        <div className="bg-gradient-to-r from-amber-500/10 to-zinc-100 dark:to-zinc-955 border border-amber-500/20 rounded-xl p-6 space-y-1.5">
+          <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest block">
+            Do this before applying:
+          </span>
+          <p className="text-xs text-zinc-855 dark:text-zinc-200 leading-relaxed font-semibold">
+            {careerAdvice.actionItem}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Strengths list */}
+          <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-3">
+            <span className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-wider block">
+              Core Strengths
+            </span>
+            <ul className="space-y-2">
+              {careerAdvice.strengths.map((str, idx) => (
+                <li key={idx} className="flex items-start gap-2 text-[10px] text-zinc-700 dark:text-zinc-305 leading-relaxed">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  {str}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Gaps list */}
+          <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-3">
+            <span className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-wider block">
+              Identified Skill Gaps
+            </span>
+            <ul className="space-y-2">
+              {careerAdvice.gaps.map((gap, idx) => (
+                <li key={idx} className="flex items-start gap-2 text-[10px] text-zinc-700 dark:text-zinc-305 leading-relaxed">
+                  <span className="text-amber-500 font-bold">⚠️</span>
+                  {gap}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Interview Topics */}
+        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-3">
+          <span className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-wider block">
+            Predicted Technical Interview Topics
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {careerAdvice.interviewTopics.map((topic, idx) => (
+              <span
+                key={idx}
+                className="bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 px-3 py-1 rounded-lg text-zinc-700 dark:text-zinc-305 text-[10px] font-medium"
+              >
+                {topic}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <div className={`mx-auto px-6 py-10 transition-all duration-500 ${showConfig ? 'max-w-6xl' : 'max-w-[1400px]'}`}>
       {/* Thin Progress Bar at very top of page */}
       <div 
         className="fixed top-0 left-0 h-0.5 bg-emerald-500 z-[9999] transition-all duration-500 ease-out" 
@@ -592,200 +1031,213 @@ export const Analyze: React.FC = () => {
         </div>
       )}
 
-      {/* Main Two Column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* LEFT COLUMN: Input Details */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-6 space-y-4 transition-colors">
-            {/* Job Board URL Scraper */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                📋 Paste Job URL (LinkedIn / Indeed / Any)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={jobUrl}
-                  onChange={(e) => setJobUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleExtract()}
-                  placeholder="https://linkedin.com/jobs/view/... or indeed.com/..."
-                  disabled={isRunning || extracting}
-                  className="flex-1 bg-zinc-50 dark:bg-[#161616] border border-zinc-250 dark:border-zinc-800 focus:border-zinc-350 dark:focus:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-xs focus:outline-none placeholder-zinc-500 dark:placeholder-zinc-400 transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={handleExtract}
-                  disabled={isRunning || extracting || !jobUrl.trim()}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap shadow-sm"
-                >
-                  {extracting ? 'Extracting...' : 'Extract JD'}
-                </button>
-              </div>
-
-              {extractError && (
-                <div className="p-3 bg-red-955/20 border border-red-900/30 rounded-lg text-red-400 text-xs">
-                  {extractError}
-                </div>
-              )}
-
-              {extractedJob && !extractError && (
-                <div className="p-3 bg-emerald-955/20 border border-emerald-900/30 rounded-lg text-emerald-400 text-xs">
-                  ✓ Extracted from {extractedJob.source}
-                  {extractedJob.title && ` — ${extractedJob.title}`}
-                  {extractedJob.company && ` at ${extractedJob.company}`}
-                </div>
-              )}
-            </div>
-
-            {/* Job Metadata details */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider">
-                  Job Title
-                </label>
-                <input
-                  type="text"
-                  value={selectedJobTitle}
-                  onChange={(e) => setSelectedJobTitle(e.target.value)}
-                  placeholder="e.g. Software Engineer"
-                  disabled={isRunning}
-                  className="w-full bg-zinc-50 dark:bg-[#161616] border border-zinc-250 dark:border-zinc-800 focus:border-zinc-350 dark:focus:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-xs focus:outline-none placeholder-zinc-500 dark:placeholder-zinc-400 transition-colors"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider">
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  value={selectedCompany}
-                  onChange={(e) => setSelectedCompany(e.target.value)}
-                  placeholder="e.g. Google"
-                  disabled={isRunning}
-                  className="w-full bg-zinc-50 dark:bg-[#161616] border border-zinc-250 dark:border-zinc-800 focus:border-zinc-350 dark:focus:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-xs focus:outline-none placeholder-zinc-500 dark:placeholder-zinc-400 transition-colors"
-                />
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="flex items-center py-2">
-              <div className="flex-1 border-t border-zinc-200 dark:border-zinc-800"></div>
-              <span className="px-3 text-[10px] uppercase font-bold text-zinc-450 dark:text-zinc-550 tracking-wider">Or paste manually</span>
-              <div className="flex-1 border-t border-zinc-200 dark:border-zinc-800"></div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                Job Description Text
-              </label>
-              <textarea
-                value={jdText}
-                onChange={(e) => setJdText(e.target.value)}
-                placeholder="Paste the target job description here..."
-                disabled={isRunning}
-                className="w-full h-60 bg-zinc-50 dark:bg-[#161616] border border-zinc-250 dark:border-zinc-800 focus:border-zinc-350 dark:focus:border-zinc-700 rounded-lg p-3 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none placeholder-zinc-500 dark:placeholder-zinc-400 resize-none transition-colors"
-              ></textarea>
-            </div>
-
-            {/* Repository override selector */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-semibold text-zinc-400">
-                  GitHub Repositories
-                </span>
-                <span className="text-[10px] text-zinc-500">
-                  {selectedRepoNames.size} of {repos.length} selected
-                </span>
-              </div>
-
-              {reposLoading ? (
-                <div className="py-8 text-center text-zinc-500 text-xs animate-pulse">
-                  Syncing repositories...
-                </div>
-              ) : repos.length === 0 ? (
-                <div className="p-4 bg-zinc-100 dark:bg-zinc-950/20 border border-zinc-200 dark:border-zinc-900 text-center rounded-lg text-[10px] text-zinc-500">
-                  No repositories synced. Go to dashboard to import.
-                </div>
-              ) : (
-                <div className="max-h-60 overflow-y-auto space-y-2 border border-zinc-200 dark:border-zinc-850 rounded-lg p-2 bg-zinc-50 dark:bg-[#161616]">
-                  {repos.map((repo) => (
-                    <div
-                      key={repo.name}
-                      onClick={() => !isRunning && toggleRepoSelected(repo.name)}
-                      className={`p-2 rounded-lg border text-left cursor-pointer transition-all ${
-                        selectedRepoNames.has(repo.name)
-                          ? 'bg-zinc-100 dark:bg-zinc-900 border-zinc-300 dark:border-zinc-800'
-                          : 'bg-white dark:bg-[#181818]/20 border-zinc-200 dark:border-transparent hover:border-zinc-350 dark:hover:border-zinc-900'
-                      } ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="checkbox"
-                          checked={selectedRepoNames.has(repo.name)}
-                          readOnly
-                          className="rounded border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-955 text-emerald-600 focus:ring-0 focus:ring-offset-0 pointer-events-none"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] font-semibold text-zinc-900 dark:text-white truncate">
-                            {repo.name}
-                          </p>
-                          <p className="text-[9px] text-zinc-500 dark:text-zinc-450 truncate">
-                            {repo.description || 'No description'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {(!repoAnalyses || repoAnalyses.length === 0) && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-955/10 border border-amber-200 dark:border-amber-900/30 rounded-lg text-amber-800 dark:text-amber-400 text-[11px] leading-relaxed">
-                ⚠️ Codebase pre-analysis is not loaded. Please go to the <strong><Link to="/" className="underline text-amber-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-300">Dashboard</Link></strong> to complete project pre-analysis first.
-              </div>
-            )}
-
-            {agentError && (
-              <div className="p-3 bg-red-50 dark:bg-red-955/10 border border-red-200 dark:border-red-900/30 rounded-lg text-red-700 dark:text-red-400 text-xs leading-relaxed">
-                {agentError}
-              </div>
-            )}
-
+      {/* Collapsed Workspace Action Header */}
+      {tailoredResume && !showConfig && (
+        <div className="mb-6 p-4 bg-white/70 dark:bg-[#121212]/80 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-900 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-slideDown">
+          <div className="flex items-center gap-4">
             <button
-              onClick={handleRunAnalysis}
-              disabled={isRunning || !jdText.trim() || repos.length === 0 || repoAnalyses.length === 0}
-              className="w-full py-2 px-4 rounded-lg bg-zinc-950 dark:bg-white text-white dark:text-[#0f0f0f] hover:bg-zinc-855 dark:hover:bg-zinc-200 active:bg-zinc-900 dark:active:bg-zinc-300 disabled:opacity-50 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-md"
+              onClick={() => setShowConfig(true)}
+              className="px-3.5 py-1.5 border border-zinc-250 dark:border-zinc-800 text-zinc-750 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white rounded-xl text-xs font-bold bg-zinc-50 dark:bg-zinc-950 hover:bg-zinc-105 dark:hover:bg-zinc-900 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
             >
-              {isRunning ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-zinc-200 dark:border-zinc-800 border-t-zinc-950 dark:border-t-white rounded-full animate-spin"></div>
-                  Processing...
-                </>
-              ) : (
-                'Analyze & Tailor'
-              )}
+              <span>←</span> Edit Job Details
+            </button>
+            <div className="border-l border-zinc-200 dark:border-zinc-800 h-6 hidden sm:block" />
+            <div>
+              <h3 className="text-xs.5 font-black text-zinc-950 dark:text-white leading-tight">
+                {selectedCompany || 'Company'} — <span className="text-zinc-550 dark:text-zinc-400 font-semibold">{selectedJobTitle || 'Job Role'}</span>
+              </h3>
+              <p className="text-[10px] text-zinc-500 font-semibold mt-0.5">
+                Workspace tailored against {selectedRepoNames.size} repositories
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`px-2.5 py-1 rounded text-xs font-black border whitespace-nowrap shadow-sm bg-zinc-50 dark:bg-zinc-900/60 ${getAtsColor(atsScore?.after || 0)}`}>
+              ATS Match: {atsScore?.after || 0}%
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowSaveModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-sm cursor-pointer transition-colors flex items-center gap-1.5 active:scale-95"
+            >
+              <span>💾</span> Save to History
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={downloadingPDF}
+              className="bg-zinc-950 dark:bg-white text-white dark:text-[#0f0f0f] px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-sm cursor-pointer transition-colors hover:bg-zinc-855 dark:hover:bg-zinc-200 disabled:opacity-55 flex items-center gap-1.5 active:scale-95"
+            >
+              {downloadingPDF ? 'Generating...' : '⬇ Download PDF'}
             </button>
           </div>
         </div>
+      )}
 
-        {/* RIGHT COLUMN: Results Details */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Phase 1, 2, 3 Agent Status Bar */}
-          {agentStatus !== 'idle' && agentStatus !== 'error' && (
+      {/* Main Workspace Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* CONFIG/INPUTS COLUMN */}
+        {showConfig && (
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-2xl p-6 space-y-4 transition-colors">
+              {/* Job Board URL Scraper */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-zinc-505 dark:text-zinc-400 uppercase tracking-wider block">
+                  📋 Paste Job URL (LinkedIn / Indeed / Any)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={jobUrl}
+                    onChange={(e) => setJobUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleExtract()}
+                    placeholder="https://linkedin.com/jobs/view/... or indeed.com/..."
+                    disabled={isRunning || extracting}
+                    className="flex-1 bg-zinc-50 dark:bg-[#161616] border border-zinc-250 dark:border-zinc-800 focus:border-zinc-350 dark:focus:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-xs focus:outline-none placeholder-zinc-505 dark:placeholder-zinc-400 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleExtract}
+                    disabled={isRunning || extracting || !jobUrl.trim()}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap shadow-sm active:scale-95"
+                  >
+                    {extracting ? 'Extracting...' : 'Extract JD'}
+                  </button>
+                </div>
+
+                {extractError && (
+                  <div className="p-3 bg-red-955/20 border border-red-900/30 rounded-lg text-red-400 text-xs">
+                    {extractError}
+                  </div>
+                )}
+
+                {extractedJob && !extractError && (
+                  <div className="p-3 bg-emerald-955/20 border border-emerald-900/30 rounded-lg text-emerald-400 text-xs">
+                    ✓ Extracted from {extractedJob.source}
+                    {extractedJob.title && ` — ${extractedJob.title}`}
+                    {extractedJob.company && ` at ${extractedJob.company}`}
+                  </div>
+                )}
+              </div>
+
+              {/* Job Metadata details */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-zinc-550 dark:text-zinc-450 uppercase tracking-wider">
+                    Job Title
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedJobTitle}
+                    onChange={(e) => setSelectedJobTitle(e.target.value)}
+                    placeholder="e.g. Software Engineer"
+                    disabled={isRunning}
+                    className="w-full bg-zinc-50 dark:bg-[#161616] border border-zinc-250 dark:border-zinc-800 focus:border-zinc-350 dark:focus:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-xs focus:outline-none placeholder-zinc-500 dark:placeholder-zinc-400 transition-colors"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-zinc-550 dark:text-zinc-450 uppercase tracking-wider">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedCompany}
+                    onChange={(e) => setSelectedCompany(e.target.value)}
+                    placeholder="e.g. Google"
+                    disabled={isRunning}
+                    className="w-full bg-zinc-50 dark:bg-[#161616] border border-zinc-250 dark:border-zinc-800 focus:border-zinc-350 dark:focus:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-xs focus:outline-none placeholder-zinc-500 dark:placeholder-zinc-400 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center py-2">
+                <div className="flex-1 border-t border-zinc-200 dark:border-zinc-800"></div>
+                <span className="px-3 text-[10px] uppercase font-bold text-zinc-450 dark:text-zinc-550 tracking-wider">Or paste manually</span>
+                <div className="flex-1 border-t border-zinc-200 dark:border-zinc-800"></div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-zinc-505 dark:text-zinc-400 uppercase tracking-wider">
+                  Job Description Text
+                </label>
+                <textarea
+                  value={jdText}
+                  onChange={(e) => setJdText(e.target.value)}
+                  placeholder="Paste the target job description here..."
+                  disabled={isRunning}
+                  className="w-full h-60 bg-zinc-50 dark:bg-[#161616] border border-zinc-250 dark:border-zinc-800 focus:border-zinc-350 dark:focus:border-zinc-700 rounded-lg p-3 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none placeholder-zinc-505 dark:placeholder-zinc-400 resize-none transition-colors"
+                ></textarea>
+              </div>
+
+              {/* Compact Repository Modal Trigger */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-zinc-550 dark:text-zinc-455 uppercase tracking-wider block">
+                  📂 Repositories for Context
+                </label>
+                <div 
+                  onClick={() => !isRunning && setShowRepoModal(true)}
+                  className="p-3 bg-zinc-50 dark:bg-[#161616] border border-zinc-255 dark:border-zinc-800/80 rounded-xl flex items-center justify-between cursor-pointer hover:border-zinc-350 dark:hover:border-zinc-700 transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-base">📁</span>
+                    <div>
+                      <p className="text-xs font-bold text-zinc-900 dark:text-white">
+                        {selectedRepoNames.size} of {repos.length} Selected
+                      </p>
+                      <p className="text-[9px] text-zinc-500 mt-0.5">
+                        Click to manage or search codebases
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold hover:underline">Manage →</span>
+                </div>
+              </div>
+
+              {(!repoAnalyses || repoAnalyses.length === 0) && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-955/10 border border-amber-200 dark:border-amber-900/30 rounded-lg text-amber-800 dark:text-amber-400 text-[11px] leading-relaxed">
+                  ⚠️ Codebase pre-analysis is not loaded. Please go to the <strong><Link to="/" className="underline text-amber-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-300">Dashboard</Link></strong> to complete project pre-analysis first.
+                </div>
+              )}
+
+              {agentError && (
+                <div className="p-3 bg-red-50 dark:bg-red-955/10 border border-red-200 dark:border-red-900/30 rounded-lg text-red-700 dark:text-red-400 text-xs leading-relaxed">
+                  {agentError}
+                </div>
+              )}
+
+              <button
+                onClick={handleRunAnalysis}
+                disabled={isRunning || !jdText.trim() || repos.length === 0 || repoAnalyses.length === 0}
+                className="w-full py-2.5 px-4 rounded-xl bg-zinc-955 dark:bg-white text-white dark:text-[#0f0f0f] hover:bg-zinc-850 dark:hover:bg-zinc-200 active:bg-zinc-900 dark:active:bg-zinc-300 disabled:opacity-50 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-md active:scale-95"
+              >
+                {isRunning ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-zinc-200 dark:border-zinc-800 border-t-zinc-950 dark:border-t-white rounded-full animate-spin"></div>
+                    Processing...
+                  </>
+                ) : (
+                  'Analyze & Tailor'
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* RESULTS COLUMN */}
+        <div className={`${showConfig ? 'lg:col-span-7' : 'lg:col-span-12'} space-y-6`}>
+          
+          {/* Sibling step loader bar */}
+          {agentStatus !== 'idle' && agentStatus !== 'error' && agentStatus !== 'done' && (
             <div className="bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border border-zinc-200 dark:border-zinc-900 rounded-2xl p-6 flex flex-col gap-6 animate-ai-glow transition-all shadow-md max-w-xl mx-auto">
-              
               {/* File details representing the Job Description being analyzed */}
               <div className="flex items-center gap-4">
                 {/* Document Icon */}
                 <div className="relative w-12 h-14 bg-zinc-100 dark:bg-zinc-900 rounded-lg border border-zinc-250 dark:border-zinc-800 flex items-center justify-center shadow-sm flex-shrink-0">
-                  {/* File shape corner notch */}
                   <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-zinc-50 dark:bg-[#0f0f0f] border-b border-l border-zinc-250 dark:border-zinc-800 rounded-bl-md" />
-                  {/* File type badge */}
                   <span className="absolute bottom-1 px-1 py-0.5 rounded text-[8px] font-black bg-zinc-900 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-400 border border-zinc-700/50 tracking-wider">
                     TEXT
                   </span>
-                  {/* Mini lines representing text inside file */}
                   <div className="flex flex-col gap-1 w-6 -mt-1.5 opacity-60">
                     <div className="w-5 h-0.5 bg-zinc-400 dark:bg-zinc-500 rounded" />
                     <div className="w-6 h-0.5 bg-zinc-400 dark:bg-zinc-500 rounded" />
@@ -812,10 +1264,10 @@ export const Analyze: React.FC = () => {
               {/* Progress and status message */}
               <div className="space-y-2.5">
                 <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-zinc-650 dark:text-zinc-300 truncate">
+                  <span className="text-zinc-650 dark:text-zinc-300 truncate font-semibold">
                     {statusMessage || 'Initializing...'}
                   </span>
-                  <span className="text-indigo-600 dark:text-indigo-400 tabular-nums">
+                  <span className="text-indigo-650 dark:text-indigo-400 tabular-nums">
                     {progressPercent}%
                   </span>
                 </div>
@@ -826,7 +1278,6 @@ export const Analyze: React.FC = () => {
                     className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(99,102,241,0.6)] relative overflow-hidden"
                     style={{ width: `${progressPercent}%` }}
                   >
-                    {/* Linear shimmer overlay */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full animate-progress-shimmer" />
                   </div>
                 </div>
@@ -835,9 +1286,9 @@ export const Analyze: React.FC = () => {
               {/* Sibling step indicator sub-row */}
               <div className="border-t border-zinc-150 dark:border-zinc-900/60 pt-4 flex items-center justify-center gap-4 sm:gap-6 flex-wrap">
                 {renderStep(1, 'Ranking Projects')}
-                <span className="text-zinc-300 dark:text-zinc-700 font-bold text-xs">→</span>
+                <span className="text-zinc-305 dark:text-zinc-700 font-bold text-xs">→</span>
                 {renderStep(2, 'Rewriting Resume')}
-                <span className="text-zinc-300 dark:text-zinc-700 font-bold text-xs">→</span>
+                <span className="text-zinc-305 dark:text-zinc-700 font-bold text-xs">→</span>
                 {renderStep(3, 'Career Advice')}
               </div>
             </div>
@@ -845,7 +1296,7 @@ export const Analyze: React.FC = () => {
 
           {/* Idle placeholder view */}
           {agentStatus === 'idle' && (
-            <div className="border border-dashed border-zinc-200 dark:border-zinc-900 rounded-xl p-12 text-center flex flex-col items-center justify-center h-96">
+            <div className="border border-dashed border-zinc-200 dark:border-zinc-900 rounded-2xl p-12 text-center flex flex-col items-center justify-center h-96 bg-white/20 dark:bg-black/5">
               <svg
                 className="w-10 h-10 text-zinc-400 dark:text-zinc-650 mb-3"
                 fill="none"
@@ -868,467 +1319,119 @@ export const Analyze: React.FC = () => {
             </div>
           )}
 
-          {/* Done State: Show Tab Results (Fades in smoothly) */}
-          {tailoredResume && (
-            <div className={`space-y-6 transition-all duration-700 ${agentStatus === 'done' ? 'opacity-100 translate-y-0' : 'opacity-0 h-0 overflow-hidden pointer-events-none'}`}>
-              {/* Style Picker */}
-              <StylePicker
-                company={selectedCompany || 'Company'}
-                jobTitle={selectedJobTitle || 'Job Opening'}
-                selectedStyle={selectedStyle}
-                onStyleSelected={setSelectedStyle}
-                companyInsight={companyInsight}
-                researchingCompany={researchingCompany}
-                onGenerate={handleDownloadPDF}
-                generating={downloadingPDF}
-              />
+          {/* RESULTS STATE */}
+          {tailoredResume && agentStatus === 'done' && (
+            <div className="space-y-6">
+              {showConfig ? (
+                /* TABBED VIEW (Used when inputs config is visible) */
+                <div className="space-y-6 animate-fadeIn">
+                  {/* Style Picker */}
+                  <StylePicker
+                    company={selectedCompany || 'Company'}
+                    jobTitle={selectedJobTitle || 'Job Opening'}
+                    selectedStyle={selectedStyle}
+                    onStyleSelected={setSelectedStyle}
+                    companyInsight={companyInsight}
+                    researchingCompany={researchingCompany}
+                    onGenerate={handleDownloadPDF}
+                    generating={downloadingPDF}
+                  />
 
-              {/* Tab Navigation header */}
-              <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-900 pr-2">
-                <div className="flex">
-                  <button
-                    onClick={() => setActiveTab('resume')}
-                    className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
-                      activeTab === 'resume'
-                        ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
-                        : 'border-transparent text-zinc-500 dark:text-zinc-455 hover:text-zinc-750 dark:hover:text-zinc-200'
-                    }`}
-                  >
-                    Tailored Resume
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('ats')}
-                    className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
-                      activeTab === 'ats'
-                        ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
-                        : 'border-transparent text-zinc-500 dark:text-zinc-455 hover:text-zinc-750 dark:hover:text-zinc-200'
-                    }`}
-                  >
-                    ATS Score
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('advice')}
-                    className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
-                      activeTab === 'advice'
-                        ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
-                        : 'border-transparent text-zinc-500 dark:text-zinc-455 hover:text-zinc-750 dark:hover:text-zinc-200'
-                    }`}
-                  >
-                    Career Advice
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowSaveModal(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm cursor-pointer transition-colors flex items-center gap-1.5"
-                >
-                  <span>💾</span> Save to History
-                </button>
-              </div>
-
-              {/* TAB 1: TAILORED RESUME PREVIEW & DIFFS */}
-              {activeTab === 'resume' && (
-                <div className="space-y-6">
-                  {/* Contact Info Header */}
-                  <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-bold text-zinc-900 dark:text-white leading-tight">
-                        {tailoredResume.name}
-                      </h3>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-450 mt-0.5">
-                        {tailoredResume.email} | {tailoredResume.phone}
-                      </p>
+                  {/* Tab Navigation header */}
+                  <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-900 pr-2">
+                    <div className="flex">
+                      <button
+                        onClick={() => setActiveTab('resume')}
+                        className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                          activeTab === 'resume'
+                            ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
+                            : 'border-transparent text-zinc-500 dark:text-zinc-450 hover:text-zinc-750 dark:hover:text-zinc-200'
+                        }`}
+                      >
+                        Tailored Resume
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('ats')}
+                        className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                          activeTab === 'ats'
+                            ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
+                            : 'border-transparent text-zinc-500 dark:text-zinc-450 hover:text-zinc-750 dark:hover:text-zinc-200'
+                        }`}
+                      >
+                        ATS Score
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('advice')}
+                        className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                          activeTab === 'advice'
+                            ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
+                            : 'border-transparent text-zinc-500 dark:text-zinc-450 hover:text-zinc-750 dark:hover:text-zinc-200'
+                        }`}
+                      >
+                        Career Advice
+                      </button>
                     </div>
                     <button
-                      onClick={() =>
-                        copySectionToClipboard(
-                          'contact',
-                          `${tailoredResume.name}\n${tailoredResume.email} | ${tailoredResume.phone}`
-                        )
-                      }
-                      className="text-[10px] text-zinc-650 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-955 transition-all cursor-pointer"
+                      type="button"
+                      onClick={() => setShowSaveModal(true)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.2 rounded-lg text-xs font-semibold shadow-sm cursor-pointer transition-colors flex items-center gap-1.5 active:scale-95"
                     >
-                      {copiedSection === 'contact' ? 'Copied!' : 'Copy Info'}
+                      <span>💾</span> Save
                     </button>
                   </div>
 
-                  {/* Skills Grid */}
-                  <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider">
-                        Reordered Skills Stack
-                      </span>
-                      <button
-                        onClick={() =>
-                          copySectionToClipboard(
-                            'skills',
-                            tailoredResume.skills.join(', ')
-                          )
-                        }
-                        className="text-[9px] text-zinc-655 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors"
-                      >
-                        {copiedSection === 'skills' ? 'Copied!' : 'Copy Skills'}
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Left: Base Skills */}
-                      <div className="space-y-1">
-                        <span className="text-[9px] font-bold text-zinc-550 dark:text-zinc-650 uppercase">
-                          Original Skills
-                        </span>
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {baseResume.skills.map((s, idx) => (
-                            <span
-                              key={idx}
-                              className="bg-zinc-100 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-900 text-zinc-600 dark:text-zinc-450 px-2 py-0.5 rounded text-[10px]"
-                            >
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      {/* Right: Tailored Skills */}
-                      <div className="space-y-1 border-l border-zinc-200 dark:border-zinc-900 pl-4">
-                        <span className="text-[9px] font-bold text-zinc-550 dark:text-zinc-650 uppercase">
-                          Tailored Reordering
-                        </span>
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {tailoredResume.skills.map((s, idx) => {
-                            const isNew = !baseResume.skills.some(
-                              (bs) => bs.toLowerCase() === s.toLowerCase()
-                            );
-                            return (
-                              <span
-                                key={idx}
-                                className={`px-2 py-0.5 rounded text-[10px] border ${
-                                  isNew
-                                    ? 'bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30 font-semibold'
-                                    : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-850 dark:text-zinc-200'
-                                }`}
-                              >
-                                {s}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Ranked projects chosen and why */}
-                  <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-4">
-                    <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider block">
-                      Targeted Repositories Selected
-                    </span>
-                    <div className="space-y-3">
-                      {rankedProjects.map((proj, idx) => (
-                        <div
-                          key={idx}
-                          className="p-3 bg-zinc-100 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-900 rounded-xl space-y-1.5"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-zinc-900 dark:text-white">
-                              {proj.name}
-                            </span>
-                            <span className="bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/30 px-1.5 py-0.5 rounded-full text-[9px] font-bold">
-                              Relevance: {proj.relevanceScore < 1 ? Math.round(proj.relevanceScore * 100) : Math.round(proj.relevanceScore)}%
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-zinc-600 dark:text-zinc-500 leading-relaxed">
-                            <span className="font-semibold text-zinc-700 dark:text-zinc-400">
-                              Recruiter Match Logic:
-                            </span>{' '}
-                            {proj.reason}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Experience Comparison Diffs */}
-                  <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-6">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                        Work Experience Bullet Diffs
-                      </span>
-                      <button
-                        onClick={() =>
-                          copySectionToClipboard(
-                            'exp',
-                            formatExperienceAsText(tailoredResume.experience)
-                          )
-                        }
-                        className="text-[9px] text-zinc-650 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors"
-                      >
-                        {copiedSection === 'exp' ? 'Copied!' : 'Copy Experience'}
-                      </button>
-                    </div>
-
-                    <div className="space-y-6">
-                      {tailoredResume.experience.map((exp, idx) => {
-                        const originalExp = baseResume.experience[idx];
-                        return (
-                          <div key={idx} className="space-y-3 border-t border-zinc-200 dark:border-zinc-900 pt-5 first:border-0 first:pt-0">
-                            <div>
-                              <h4 className="text-xs font-bold text-zinc-900 dark:text-white">
-                                {exp.role} at {exp.company}
-                              </h4>
-                              <p className="text-[9px] text-zinc-500 dark:text-zinc-450">{exp.duration}</p>
-                            </div>
-                            <div className="space-y-2">
-                              {exp.bullets.map((bullet, bulletIdx) => {
-                                const origBullet = originalExp?.bullets?.[bulletIdx] || '';
-                                return (
-                                  <div
-                                    key={bulletIdx}
-                                    className="grid grid-cols-1 md:grid-cols-2 gap-3 p-2 bg-zinc-100/60 dark:bg-zinc-955/40 rounded-lg border border-zinc-200 dark:border-zinc-900"
-                                  >
-                                    <div className="text-[10px] text-zinc-600 dark:text-zinc-550 italic leading-relaxed">
-                                      <span className="text-[9px] font-semibold text-zinc-450 dark:text-zinc-650 block mb-0.5">
-                                        Original Bullet
-                                      </span>
-                                      {origBullet || 'N/A'}
-                                    </div>
-                                    <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-900 pt-2 md:pt-0 md:pl-3">
-                                      <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500/80 block mb-0.5">
-                                        Tailored Rewrite
-                                      </span>
-                                      {diffText(origBullet, bullet)}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Tailored Projects Section Diffs */}
-                  <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-6">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider">
-                        Tailored Projects Bullet Diffs
-                      </span>
-                      <button
-                        onClick={() =>
-                          copySectionToClipboard(
-                            'projects',
-                            formatProjectsAsText(tailoredResume.projects)
-                          )
-                        }
-                        className="text-[9px] text-zinc-650 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors"
-                      >
-                        {copiedSection === 'projects' ? 'Copied!' : 'Copy Projects'}
-                      </button>
-                    </div>
-
-                    <div className="space-y-6">
-                      {tailoredResume.projects.map((proj, idx) => {
-                        const originalProj = baseResume.projects.find(
-                          (p) => p.name.toLowerCase() === proj.name.toLowerCase()
-                        );
-                        return (
-                          <div key={idx} className="space-y-3 border-t border-zinc-200 dark:border-zinc-900 pt-5 first:border-0 first:pt-0">
-                            <div>
-                              <h4 className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                                {proj.name}
-                                <span className="flex gap-1">
-                                  {proj.tech.map((t, tIdx) => (
-                                    <span
-                                      key={tIdx}
-                                      className="bg-zinc-100 dark:bg-zinc-900 text-zinc-650 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 px-1 py-0.5 rounded text-[8px]"
-                                    >
-                                      {t}
-                                    </span>
-                                  ))}
-                                </span>
-                              </h4>
-                            </div>
-                            <div className="space-y-2">
-                              {proj.bullets.map((bullet, bulletIdx) => {
-                                const origBullet = originalProj?.bullets?.[bulletIdx] || '';
-                                return (
-                                  <div
-                                    key={bulletIdx}
-                                    className="grid grid-cols-1 md:grid-cols-2 gap-3 p-2 bg-zinc-100/60 dark:bg-zinc-955/40 rounded-lg border border-zinc-200 dark:border-zinc-900"
-                                  >
-                                    <div className="text-[10px] text-zinc-600 dark:text-zinc-550 italic leading-relaxed">
-                                      <span className="text-[9px] font-semibold text-zinc-450 dark:text-zinc-650 block mb-0.5">
-                                        Original Bullet
-                                      </span>
-                                      {origBullet || 'N/A'}
-                                    </div>
-                                    <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-900 pt-2 md:pt-0 md:pl-3">
-                                      <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500/80 block mb-0.5">
-                                        Tailored Rewrite
-                                      </span>
-                                      {diffText(origBullet, bullet)}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Education Display */}
-                  <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider">
-                        Education History
-                      </span>
-                      <button
-                        onClick={() =>
-                          copySectionToClipboard(
-                            'edu',
-                            tailoredResume.education
-                              .map(
-                                (edu) =>
-                                  `**${edu.institution}**\n${edu.degree} (${edu.year})`
-                              )
-                              .join('\n\n')
-                          )
-                        }
-                        className="text-[9px] text-zinc-650 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors"
-                      >
-                        {copiedSection === 'edu' ? 'Copied!' : 'Copy Edu'}
-                      </button>
-                    </div>
-                    <div className="space-y-3">
-                      {tailoredResume.education.map((edu, idx) => (
-                        <div key={idx} className="text-left">
-                          <p className="text-xs font-semibold text-zinc-900 dark:text-white">
-                            {edu.institution}
-                          </p>
-                          <p className="text-[10px] text-zinc-600 dark:text-zinc-400 mt-0.5">
-                            {edu.degree} —{' '}
-                            <span className="text-zinc-500 dark:text-zinc-500">{edu.year}</span>
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  {activeTab === 'resume' && renderResumePreview()}
+                  {activeTab === 'ats' && renderAtsScoreTab()}
+                  {activeTab === 'advice' && renderCareerAdviceTab()}
                 </div>
-              )}
+              ) : (
+                /* UNIFIED SIDE-BY-SIDE WORKSPACE (Used when inputs config is collapsed) */
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  
+                  {/* Left Side: Resume Diffs (7 Cols) */}
+                  <div className="lg:col-span-7 space-y-6">
+                    <div className="flex justify-between items-center pb-2 border-b border-zinc-200 dark:border-zinc-900">
+                      <h4 className="text-xs font-black text-zinc-500 dark:text-zinc-450 uppercase tracking-widest flex items-center gap-2">
+                        <span>📄</span> Tailored Resume Preview & Diffs
+                      </h4>
+                      <button
+                        onClick={() => setShowConfig(true)}
+                        className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        <span>✏️</span> Edit Details
+                      </button>
+                    </div>
+                    {renderResumePreview()}
+                  </div>
 
-              {/* TAB 2: ATS SCORE & MISSING KEYWORDS */}
-              {activeTab === 'ats' && atsScore && (
-                <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-6 space-y-8">
-                  {/* Score rings */}
-                  <div className="flex justify-around items-center py-6 border-b border-zinc-200 dark:border-zinc-900">
-                    <CircularProgress
-                      score={atsScore.before}
-                      colorClass="text-zinc-500 dark:text-zinc-650"
-                      label="Original ATS Score"
+                  {/* Right Side: Score, Keywords, Advice & Styles (5 Cols) */}
+                  <div className="lg:col-span-5 space-y-6">
+                    {/* Style Picker */}
+                    <StylePicker
+                      company={selectedCompany || 'Company'}
+                      jobTitle={selectedJobTitle || 'Job Opening'}
+                      selectedStyle={selectedStyle}
+                      onStyleSelected={setSelectedStyle}
+                      companyInsight={companyInsight}
+                      researchingCompany={researchingCompany}
+                      onGenerate={handleDownloadPDF}
+                      generating={downloadingPDF}
                     />
-                    <div className="text-2xl text-zinc-400 dark:text-zinc-755 font-light">→</div>
-                    <CircularProgress
-                      score={atsScore.after}
-                      colorClass="text-emerald-600 dark:text-emerald-500"
-                      label="Tailored ATS Score"
-                    />
-                  </div>
 
-                  {/* Missing keyword badges */}
-                  <div className="space-y-3">
-                    <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider block">
-                      Target Job Keywords Addressed
-                    </span>
-                    {missingKeywords.length === 0 ? (
-                      <p className="text-[11px] text-zinc-600 dark:text-zinc-550">
-                        Excellent! The resume rewriter did not detect any key missing terms.
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {missingKeywords.map((kw, idx) => (
-                          <span
-                            key={idx}
-                            className="bg-red-50 dark:bg-red-955/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/35 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
-                          >
-                            {kw}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Scoring detail note */}
-                  <div className="bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 p-4 rounded-xl">
-                    <h5 className="text-xs font-semibold text-zinc-900 dark:text-white mb-1">
-                      Scoring Methodology
-                    </h5>
-                    <p className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-relaxed">
-                      Before score maps your original profile matching against the JD constraints. 
-                      After score estimates the improved match rate following skill reordering and target keyword injections.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: CAREER ADVICE */}
-              {activeTab === 'advice' && careerAdvice && (
-                <div className="space-y-6">
-                  {/* Action Item highlight */}
-                  <div className="bg-gradient-to-r from-amber-500/10 to-zinc-100 dark:to-zinc-955 border border-amber-500/20 rounded-xl p-6 space-y-1.5">
-                    <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest block">
-                      Do this before applying:
-                    </span>
-                    <p className="text-xs text-zinc-800 dark:text-zinc-200 leading-relaxed font-semibold">
-                      {careerAdvice.actionItem}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Strengths list */}
-                    <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-3">
-                      <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider block">
-                        Core Strengths
-                      </span>
-                      <ul className="space-y-2">
-                        {careerAdvice.strengths.map((str, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-[10px] text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                            <span className="text-emerald-500 font-bold">✓</span>
-                            {str}
-                          </li>
-                        ))}
-                      </ul>
+                    {/* ATS match details */}
+                    <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-2xl p-6 space-y-6 shadow-sm">
+                      <h4 className="text-[11px] font-black text-zinc-505 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                        <span>📈</span> ATS Match Analysis
+                      </h4>
+                      {renderAtsScoreTab()}
                     </div>
 
-                    {/* Gaps list */}
-                    <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-3">
-                      <span className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-wider block">
-                        Identified Skill Gaps
-                      </span>
-                      <ul className="space-y-2">
-                        {careerAdvice.gaps.map((gap, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-[10px] text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                            <span className="text-amber-500 font-bold">⚠️</span>
-                            {gap}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Interview Topics */}
-                  <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-3">
-                    <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider block">
-                      Predicted Technical Interview Topics
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {careerAdvice.interviewTopics.map((topic, idx) => (
-                        <span
-                          key={idx}
-                          className="bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 px-3 py-1 rounded-lg text-zinc-700 dark:text-zinc-300 text-[10px] font-medium"
-                        >
-                          {topic}
-                        </span>
-                      ))}
+                    {/* Career advice details */}
+                    <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-2xl p-6 space-y-6 shadow-sm">
+                      <h4 className="text-[11px] font-black text-zinc-505 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                        <span>💡</span> AI Advice & Recommendations
+                      </h4>
+                      {renderCareerAdviceTab()}
                     </div>
                   </div>
                 </div>
@@ -1337,6 +1440,109 @@ export const Analyze: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* GitHub Repository Search Modal Overlay */}
+      {showRepoModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl animate-scaleUp flex flex-col max-h-[85vh]">
+            <div className="flex justify-between items-center pb-4 border-b border-zinc-150 dark:border-zinc-900">
+              <div>
+                <h2 className="text-sm.5 font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                  <span>📂</span> Select GitHub Repositories
+                </h2>
+                <p className="text-zinc-550 dark:text-zinc-500 text-[10px] mt-0.5 font-medium">
+                  Toggle which projects are used by ResumeAI to rank and rewrite bullets.
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowRepoModal(false)}
+                className="text-zinc-450 hover:text-zinc-900 dark:hover:text-white text-xl font-bold cursor-pointer p-1"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Search Bar & Helpers */}
+            <div className="py-4 flex gap-2">
+              <input 
+                type="text"
+                value={repoSearch}
+                onChange={(e) => setRepoSearch(e.target.value)}
+                placeholder="Search repositories by name or description..."
+                className="flex-1 bg-zinc-50 dark:bg-[#161616] border border-zinc-250 dark:border-zinc-800 focus:border-zinc-350 dark:focus:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-xs focus:outline-none placeholder-zinc-500 dark:placeholder-zinc-400 transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const allNames = repos.map(r => r.name);
+                  setSelectedRepoNames(new Set(allNames));
+                }}
+                className="px-2.5 py-1.5 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-350 dark:hover:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-[10px] font-bold rounded-lg cursor-pointer transition-colors active:scale-95"
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRepoNames(new Set())}
+                className="px-2.5 py-1.5 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-350 dark:hover:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-[10px] font-bold rounded-lg cursor-pointer transition-colors active:scale-95"
+              >
+                None
+              </button>
+            </div>
+
+            {/* Repo List */}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[300px]">
+              {reposLoading ? (
+                <div className="py-12 text-center text-zinc-505 text-xs animate-pulse">
+                  Loading repositories...
+                </div>
+              ) : filteredRepos.length === 0 ? (
+                <div className="py-12 text-center text-zinc-500 text-xs">
+                  No repositories found matching "{repoSearch}"
+                </div>
+              ) : (
+                filteredRepos.map((repo) => (
+                  <div
+                    key={repo.name}
+                    onClick={() => toggleRepoSelected(repo.name)}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                      selectedRepoNames.has(repo.name)
+                        ? 'bg-emerald-50/10 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-900/60 shadow-sm'
+                        : 'bg-zinc-50 dark:bg-[#181818]/30 border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedRepoNames.has(repo.name)}
+                        readOnly
+                        className="rounded border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-955 text-emerald-600 focus:ring-0 focus:ring-offset-0 pointer-events-none"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                          {repo.name}
+                        </p>
+                        <p className="text-[10px] text-zinc-500 dark:text-zinc-450 mt-0.5 leading-relaxed">
+                          {repo.description || 'No description provided'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-zinc-150 dark:border-zinc-900 flex justify-end">
+              <button
+                onClick={() => setShowRepoModal(false)}
+                className="bg-zinc-950 dark:bg-white text-white dark:text-[#0f0f0f] px-5 py-2 rounded-xl text-xs font-bold shadow-md cursor-pointer transition-colors hover:bg-zinc-850 dark:hover:bg-zinc-200 active:scale-95"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recovery Modal */}
       {showDraftModal && (
