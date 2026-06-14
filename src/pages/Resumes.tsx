@@ -236,7 +236,7 @@ export const Resumes: React.FC = () => {
             {filteredResumes.map((analysis) => (
               <div
                 key={analysis.id}
-                className="relative h-64 overflow-visible group cursor-pointer transition-all duration-300"
+                className="relative h-64 overflow-visible group cursor-pointer transition-all duration-300 hover:z-50"
               >
                 {/* Folder Back Flap */}
                 <div className="absolute inset-x-0 bottom-0 top-12 bg-zinc-800 dark:bg-zinc-900 border border-zinc-700/30 dark:border-zinc-850 rounded-2xl shadow-md z-0 transition-transform duration-300">

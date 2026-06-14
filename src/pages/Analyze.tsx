@@ -9,6 +9,8 @@ import { saveDraft, loadDraft, deleteDraft } from '../lib/saveDraft';
 import { downloadResumePDF, type ResumeStyle } from '../lib/generatePDF';
 import { extractJobFromUrl, type ExtractedJob } from '../lib/jobBoardExtractor';
 import { researchCompany, type CompanyInsight } from '../lib/companyResearch';
+import { useTemplateStore } from '../store/templateStore';
+
 
 
 const diffText = (oldText: string, newText: string) => {
@@ -150,6 +152,15 @@ export const Analyze: React.FC = () => {
     setStep3Result,
   } = useAgentStore();
 
+  const {
+    customTemplates,
+    addTemplate,
+    updateTemplate,
+    deleteTemplate,
+    getTemplate
+  } = useTemplateStore();
+
+
   const navigate = useNavigate();
   const [selectedRepoNames, setSelectedRepoNames] = useState<Set<string>>(
     new Set()
@@ -178,6 +189,22 @@ export const Analyze: React.FC = () => {
   const [researchingCompany, setResearchingCompany] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
 
+  // Custom Template Designer States
+  const [showDesignerModal, setShowDesignerModal] = useState(false);
+  const [designerId, setDesignerId] = useState<string | null>(null);
+  const [designerName, setDesignerName] = useState('');
+  const [designerBaseStyle, setDesignerBaseStyle] = useState<'classic' | 'modern' | 'minimal' | 'two-column'>('modern');
+  const [designerPrimary, setDesignerPrimary] = useState('#1a1a2e');
+  const [designerSecondary, setDesignerSecondary] = useState('#555555');
+  const [designerBg, setDesignerBg] = useState('#ffffff');
+  const [designerText, setDesignerText] = useState('#333333');
+  const [designerFontSize, setDesignerFontSize] = useState(10);
+  const [designerMarginV, setDesignerMarginV] = useState(45);
+  const [designerMarginH, setDesignerMarginH] = useState(50);
+  const [designerAlignment, setDesignerAlignment] = useState<'left' | 'center'>('left');
+  const [designerSkillsLayout, setDesignerSkillsLayout] = useState<'bullets' | 'tags'>('tags');
+
+
   // Redesign state variables
   const [showRepoModal, setShowRepoModal] = useState(false);
   const [repoSearch, setRepoSearch] = useState('');
@@ -198,10 +225,11 @@ export const Analyze: React.FC = () => {
     try {
       const filename = `${selectedCompany || 'Company'}_${selectedJobTitle || 'Resume'}_Resume.pdf`
         .replace(/\s+/g, '_');
+      const customConfig = customTemplates.find(t => t.id === selectedStyle);
       await downloadResumePDF(tailoredResume, filename, selectedStyle, {
         linkedin: tailoredResume.linkedin,
         github: tailoredResume.github
-      });
+      }, customConfig);
       setToastMessage('✓ PDF downloaded');
     } catch (err) {
       setToastMessage('Failed to generate PDF');
@@ -209,6 +237,83 @@ export const Analyze: React.FC = () => {
       setDownloadingPDF(false);
     }
   };
+
+  const handleCreateCustomTemplate = () => {
+    setDesignerId(null);
+    setDesignerName('My Custom Layout');
+    setDesignerBaseStyle('modern');
+    setDesignerPrimary('#1a1a2e');
+    setDesignerSecondary('#555555');
+    setDesignerBg('#ffffff');
+    setDesignerText('#333333');
+    setDesignerFontSize(10);
+    setDesignerMarginV(45);
+    setDesignerMarginH(50);
+    setDesignerAlignment('left');
+    setDesignerSkillsLayout('tags');
+    setShowDesignerModal(true);
+  };
+
+  const handleEditCustomTemplate = (id: string) => {
+    const tpl = getTemplate(id);
+    if (!tpl) return;
+    setDesignerId(tpl.id);
+    setDesignerName(tpl.name);
+    setDesignerBaseStyle(tpl.baseStyle);
+    setDesignerPrimary(tpl.primaryColor);
+    setDesignerSecondary(tpl.secondaryColor);
+    setDesignerBg(tpl.backgroundColor);
+    setDesignerText(tpl.textColor);
+    setDesignerFontSize(tpl.fontSizeBase);
+    setDesignerMarginV(tpl.marginVertical);
+    setDesignerMarginH(tpl.marginHorizontal);
+    setDesignerAlignment(tpl.headerAlignment);
+    setDesignerSkillsLayout(tpl.skillsLayout);
+    setShowDesignerModal(true);
+  };
+
+  const handleDeleteCustomTemplate = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this custom template?')) {
+      deleteTemplate(id);
+      if (selectedStyle === id) {
+        setSelectedStyle('modern');
+      }
+      setToastMessage('✓ Template deleted');
+    }
+  };
+
+  const handleSaveDesignerTemplate = () => {
+    if (!designerName.trim()) {
+      alert('Please enter a template name.');
+      return;
+    }
+
+    const tplData = {
+      name: designerName,
+      baseStyle: designerBaseStyle,
+      primaryColor: designerPrimary,
+      secondaryColor: designerSecondary,
+      backgroundColor: designerBg,
+      textColor: designerText,
+      fontSizeBase: designerFontSize,
+      marginVertical: designerMarginV,
+      marginHorizontal: designerMarginH,
+      headerAlignment: designerAlignment,
+      skillsLayout: designerSkillsLayout
+    };
+
+    if (designerId) {
+      updateTemplate(designerId, tplData);
+      setToastMessage('✓ Layout updated');
+      setSelectedStyle(designerId);
+    } else {
+      const newTpl = addTemplate(tplData);
+      setToastMessage('✓ Custom layout saved');
+      setSelectedStyle(newTpl.id);
+    }
+    setShowDesignerModal(false);
+  };
+
 
   useEffect(() => {
     if (agentStatus === 'done' && selectedCompany) {
@@ -228,7 +333,7 @@ export const Analyze: React.FC = () => {
         })
         .finally(() => setResearchingCompany(false))
     }
-  }, [agentStatus]);
+  }, [agentStatus, selectedCompany, selectedJobTitle]);
 
 
   // Automatically show save modal and collapse config panel when analysis finishes
@@ -1456,6 +1561,7 @@ export const Analyze: React.FC = () => {
                   {/* Style Picker */}
                   {(showStylePicker || !researchingCompany) && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                      {/* Preset styles */}
                       {[
                         {
                           id: 'classic',
@@ -1504,6 +1610,67 @@ export const Analyze: React.FC = () => {
                           <p className="text-zinc-650 text-[10px]">Best for: {style.best}</p>
                         </button>
                       ))}
+
+                      {/* Custom user templates */}
+                      {customTemplates.map(style => (
+                        <div
+                          key={style.id}
+                          className={`relative p-4 rounded-xl border text-left transition-all group ${
+                            selectedStyle === style.id
+                              ? 'border-white bg-zinc-800'
+                              : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-600'
+                          }`}
+                        >
+                          <div 
+                            className="cursor-pointer h-full pr-6"
+                            onClick={() => setSelectedStyle(style.id)}
+                          >
+                            <p className="font-bold text-white text-sm mb-1 truncate">{style.name}</p>
+                            <p className="text-zinc-400 text-xs mb-2 truncate text-capitalize">Base: {style.baseStyle}</p>
+                            <div className="flex gap-1 mt-1">
+                              <span className="w-2.5 h-2.5 rounded-full border border-zinc-700" style={{ backgroundColor: style.primaryColor }} />
+                              <span className="w-2.5 h-2.5 rounded-full border border-zinc-700" style={{ backgroundColor: style.secondaryColor }} />
+                              <span className="w-2.5 h-2.5 rounded-full border border-zinc-700" style={{ backgroundColor: style.backgroundColor }} />
+                            </div>
+                          </div>
+
+                          {/* Edit/Delete Overlay */}
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditCustomTemplate(style.id);
+                              }}
+                              title="Edit Template"
+                              className="p-1 hover:bg-zinc-700 text-zinc-455 hover:text-white rounded transition-colors text-[10px]"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCustomTemplate(style.id);
+                              }}
+                              title="Delete Template"
+                              className="p-1 hover:bg-red-955 text-zinc-455 hover:text-red-405 rounded transition-colors text-[10px]"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Create custom button card */}
+                      <button
+                        type="button"
+                        onClick={handleCreateCustomTemplate}
+                        className="p-4 rounded-xl border border-dashed border-zinc-800 hover:border-zinc-500 bg-zinc-950/20 hover:bg-zinc-900/40 text-center flex flex-col items-center justify-center transition-all min-h-[105px] group cursor-pointer"
+                      >
+                        <span className="text-xs text-zinc-450 group-hover:text-zinc-300 font-bold mb-1">+ Custom Style</span>
+                        <span className="text-[9px] text-zinc-600 group-hover:text-zinc-500">Design your own layout</span>
+                      </button>
                     </div>
                   )}
                   
@@ -1518,7 +1685,10 @@ export const Analyze: React.FC = () => {
                   >
                     {downloadingPDF
                       ? 'Generating PDF...'
-                      : `⬇ Download ${selectedStyle.charAt(0).toUpperCase() + selectedStyle.slice(1)} Resume PDF`
+                      : `⬇ Download ${
+                          customTemplates.find(t => t.id === selectedStyle)?.name ||
+                          (selectedStyle.charAt(0).toUpperCase() + selectedStyle.slice(1))
+                        } Resume PDF`
                     }
                   </button>
                 </div>
@@ -1724,6 +1894,260 @@ export const Analyze: React.FC = () => {
                 className="flex-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-755 dark:text-zinc-200 px-4 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors"
               >
                 Skip
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template Designer Modal */}
+      {showDesignerModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto animate-fadeIn">
+          <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl animate-scaleUp my-8 max-h-[90vh] flex flex-col">
+            
+            <div className="flex justify-between items-center pb-3 border-b border-zinc-200 dark:border-zinc-900 mb-4">
+              <h2 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                <span>🎨</span> {designerId ? 'Edit Custom Layout' : 'Design Custom Layout'}
+              </h2>
+              <button 
+                onClick={() => setShowDesignerModal(false)}
+                className="text-zinc-450 hover:text-zinc-900 dark:hover:text-white text-lg font-bold cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto flex-1 pr-1 pb-4 scrollbar-thin">
+              {/* Name */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase tracking-wider block">
+                  Template Name
+                </label>
+                <input
+                  type="text"
+                  value={designerName}
+                  onChange={(e) => setDesignerName(e.target.value)}
+                  className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-250 dark:border-zinc-850 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-700 transition-colors"
+                  placeholder="e.g. Tech Clean Blue"
+                />
+              </div>
+
+              {/* Base Style Choice */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase tracking-wider block">
+                  Base Style Layout
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(['classic', 'modern', 'minimal', 'two-column'] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setDesignerBaseStyle(s)}
+                      className={`py-2 px-1 rounded-lg border text-center text-[10px] font-semibold transition-all capitalize ${
+                        designerBaseStyle === s
+                          ? 'border-emerald-500 bg-emerald-950/20 text-emerald-400'
+                          : 'border-zinc-250 dark:border-zinc-850 bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400'
+                      }`}
+                    >
+                      {s.replace('-', ' ')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Colors Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase tracking-wider block">
+                    Primary Accent Color
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={designerPrimary}
+                      onChange={(e) => setDesignerPrimary(e.target.value)}
+                      className="w-8 h-8 rounded border border-zinc-800 bg-transparent cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={designerPrimary}
+                      onChange={(e) => setDesignerPrimary(e.target.value)}
+                      className="flex-1 bg-zinc-50 dark:bg-zinc-950 border border-zinc-250 dark:border-zinc-850 rounded-lg px-2 text-xs text-zinc-900 dark:text-white uppercase font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-455 dark:text-zinc-400 uppercase tracking-wider block">
+                    Secondary Color
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={designerSecondary}
+                      onChange={(e) => setDesignerSecondary(e.target.value)}
+                      className="w-8 h-8 rounded border border-zinc-800 bg-transparent cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={designerSecondary}
+                      onChange={(e) => setDesignerSecondary(e.target.value)}
+                      className="flex-1 bg-zinc-50 dark:bg-zinc-955 border border-zinc-250 dark:border-zinc-850 rounded-lg px-2 text-xs text-zinc-900 dark:text-white uppercase font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase tracking-wider block">
+                    Background Color
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={designerBg}
+                      onChange={(e) => setDesignerBg(e.target.value)}
+                      className="w-8 h-8 rounded border border-zinc-800 bg-transparent cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={designerBg}
+                      onChange={(e) => setDesignerBg(e.target.value)}
+                      className="flex-1 bg-zinc-50 dark:bg-zinc-950 border border-zinc-250 dark:border-zinc-850 rounded-lg px-2 text-xs text-zinc-900 dark:text-white uppercase font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase tracking-wider block">
+                    Text Color
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={designerText}
+                      onChange={(e) => setDesignerText(e.target.value)}
+                      className="w-8 h-8 rounded border border-zinc-800 bg-transparent cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={designerText}
+                      onChange={(e) => setDesignerText(e.target.value)}
+                      className="flex-1 bg-zinc-50 dark:bg-zinc-955 border border-zinc-250 dark:border-zinc-850 rounded-lg px-2 text-xs text-zinc-900 dark:text-white uppercase font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sizing & Layout variables */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase tracking-wider block">
+                    Font Size ({designerFontSize}pt)
+                  </label>
+                  <input
+                    type="range"
+                    min="8"
+                    max="14"
+                    step="0.5"
+                    value={designerFontSize}
+                    onChange={(e) => setDesignerFontSize(parseFloat(e.target.value))}
+                    className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase tracking-wider block">
+                    Margin V ({designerMarginV}px)
+                  </label>
+                  <input
+                    type="range"
+                    min="15"
+                    max="80"
+                    step="5"
+                    value={designerMarginV}
+                    onChange={(e) => setDesignerMarginV(parseInt(e.target.value))}
+                    className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase tracking-wider block">
+                    Margin H ({designerMarginH}px)
+                  </label>
+                  <input
+                    type="range"
+                    min="15"
+                    max="80"
+                    step="5"
+                    value={designerMarginH}
+                    onChange={(e) => setDesignerMarginH(parseInt(e.target.value))}
+                    className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* Header alignment and skills layout style */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase tracking-wider block">
+                    Header Alignment
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['left', 'center'] as const).map((align) => (
+                      <button
+                        key={align}
+                        type="button"
+                        onClick={() => setDesignerAlignment(align)}
+                        className={`py-1.5 rounded-lg border text-center text-[10px] font-semibold transition-all capitalize ${
+                          designerAlignment === align
+                            ? 'border-emerald-500 bg-emerald-950/20 text-emerald-400'
+                            : 'border-zinc-250 dark:border-zinc-850 bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400'
+                        }`}
+                      >
+                        {align}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase tracking-wider block">
+                    Skills Format
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['bullets', 'tags'] as const).map((layout) => (
+                      <button
+                        key={layout}
+                        type="button"
+                        onClick={() => setDesignerSkillsLayout(layout)}
+                        className={`py-1.5 rounded-lg border text-center text-[10px] font-semibold transition-all capitalize ${
+                          designerSkillsLayout === layout
+                            ? 'border-emerald-500 bg-emerald-950/20 text-emerald-400'
+                            : 'border-zinc-250 dark:border-zinc-850 bg-zinc-50 dark:bg-zinc-955 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400'
+                        }`}
+                      >
+                        {layout === 'bullets' ? 'Bullet List' : 'Inline Dot'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-3 border-t border-zinc-200 dark:border-zinc-900 mt-4">
+              <button
+                type="button"
+                onClick={handleSaveDesignerTemplate}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-sm active:scale-95"
+              >
+                Save Style Layout
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDesignerModal(false)}
+                className="flex-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-750 dark:text-zinc-200 px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Cancel
               </button>
             </div>
           </div>
