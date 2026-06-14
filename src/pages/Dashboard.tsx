@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useAuthStore } from '../store/authStore';
 import { useRepoStore } from '../store/repoStore';
 
@@ -32,11 +33,29 @@ export const Dashboard: React.FC = () => {
     analysisProgress,
     analyzeAllRepos,
     reAnalyzeAllRepos,
+    generatingReadmeFor,
+    pushingReadmeFor,
+    bulkReadmeProgress,
+    generateReadme,
+    pushReadme,
+    bulkGenerateReadmes,
   } = useRepoStore();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [prevStatus, setPrevStatus] = useState(analysisStatus);
+
+  // README Management States
+  const [confirmingUpdateRepo, setConfirmingUpdateRepo] = useState<string | null>(null);
+  const [activeReadmeModalRepo, setActiveReadmeModalRepo] = useState<string | null>(null);
+  const [readmeContent, setReadmeContent] = useState<string>('');
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [isEdited, setIsEdited] = useState(false);
+  const [showPushToast, setShowPushToast] = useState(false);
+  const [pushedRepoName, setPushedRepoName] = useState('');
+  const [showBulkToast, setShowBulkToast] = useState(false);
+  const [bulkToastCount, setBulkToastCount] = useState(0);
+  const [prevBulkProgress, setPrevBulkProgress] = useState<string | null>(bulkReadmeProgress);
 
   useEffect(() => {
     if (user?.provider_token && repos.length === 0) {
@@ -61,10 +80,75 @@ export const Dashboard: React.FC = () => {
     setPrevStatus(analysisStatus);
   }, [analysisStatus, prevStatus]);
 
+  // Handle showing toast notification on bulk README generation completion
+  useEffect(() => {
+    if (prevBulkProgress !== null && bulkReadmeProgress === null) {
+      setShowBulkToast(true);
+      const timer = setTimeout(() => setShowBulkToast(false), 4000);
+      return () => clearTimeout(timer);
+    }
+    setPrevBulkProgress(bulkReadmeProgress);
+  }, [bulkReadmeProgress, prevBulkProgress]);
+
   const handleRefresh = () => {
     if (user?.provider_token) {
       fetchRepos(user.provider_token);
     }
+  };
+
+  const handleGenerateReadme = async (repoName: string) => {
+    try {
+      const generated = await generateReadme(repoName);
+      setReadmeContent(generated);
+      setActiveReadmeModalRepo(repoName);
+      setIsEdited(false);
+    } catch (err: any) {
+      console.error('Error generating README:', err);
+      alert(err.message || 'Failed to generate README.');
+    }
+  };
+
+  const handleBulkGenerate = async () => {
+    if (!user?.id) return;
+    const count = repos.filter((r) => !r.hasReadme).length;
+    setBulkToastCount(count);
+    await bulkGenerateReadmes(user.id);
+  };
+
+  const handleCopyMarkdown = async () => {
+    try {
+      await navigator.clipboard.writeText(readmeContent);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const handlePushToGitHub = async () => {
+    if (!user?.id || !activeReadmeModalRepo) return;
+    try {
+      await pushReadme(user.id, activeReadmeModalRepo, readmeContent);
+      setPushedRepoName(activeReadmeModalRepo);
+      setShowPushToast(true);
+      setTimeout(() => setShowPushToast(false), 4000);
+      setActiveReadmeModalRepo(null);
+      setReadmeContent('');
+      setIsEdited(false);
+    } catch (err: any) {
+      console.error('Error pushing README:', err);
+      alert(err.message || 'Failed to push README to GitHub.');
+    }
+  };
+
+  const handleCloseModal = () => {
+    if (isEdited) {
+      const confirmDiscard = window.confirm('Discard unsaved changes to this README?');
+      if (!confirmDiscard) return;
+    }
+    setActiveReadmeModalRepo(null);
+    setReadmeContent('');
+    setIsEdited(false);
   };
 
   const filteredRepos = repos.filter(
@@ -94,12 +178,14 @@ export const Dashboard: React.FC = () => {
     return `${diffDays} days ago`;
   };
 
+  const missingReadmeCount = repos.filter(r => !r.hasReadme).length;
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
       {/* Top Banner / Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-xl font-semibold text-white tracking-tight">
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight">
             GitHub Repositories
           </h1>
           <p className="text-zinc-500 text-xs mt-0.5">
@@ -112,15 +198,15 @@ export const Dashboard: React.FC = () => {
             placeholder="Search repositories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-[#141414] border border-zinc-900 focus:border-zinc-700 text-xs px-4 py-2 rounded-xl focus:outline-none w-full md:w-60 text-zinc-200"
+            className="bg-zinc-50 dark:bg-[#141414] border border-zinc-200 dark:border-zinc-900 focus:border-zinc-350 dark:focus:border-zinc-700 text-xs px-4 py-2 rounded-xl focus:outline-none w-full md:w-60 text-zinc-800 dark:text-zinc-200 placeholder-zinc-500 dark:placeholder-zinc-400 transition-colors"
           />
           <button
             onClick={handleRefresh}
             disabled={loading || !user?.provider_token}
-            className="border border-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white px-3.5 py-2 rounded-xl text-xs font-semibold bg-zinc-950 transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+            className="border border-zinc-200 dark:border-zinc-850 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white px-3.5 py-2 rounded-xl text-xs font-semibold bg-zinc-100 dark:bg-zinc-950 transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-sm"
           >
             {loading && (
-              <div className="w-3 h-3 border border-zinc-650 border-t-zinc-250 rounded-full animate-spin"></div>
+              <div className="w-3 h-3 border border-zinc-350 border-t-white rounded-full animate-spin"></div>
             )}
             Refresh Sync
           </button>
@@ -129,34 +215,34 @@ export const Dashboard: React.FC = () => {
 
       {/* Codebase Analysis Status Card */}
       {analysisStatus === 'analyzing' && (
-        <div className="mb-6 bg-[#121212] border border-zinc-800 rounded-xl p-5 flex flex-col gap-3 shadow-md">
+        <div className="mb-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 flex flex-col gap-3 shadow-sm">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-zinc-200 font-semibold text-xs">
-              <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-zinc-800/80 border-t-white rounded-full"></span>
+            <div className="flex items-center gap-2 text-zinc-850 dark:text-zinc-200 font-semibold text-xs">
+              <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-zinc-350 dark:border-zinc-800 border-t-zinc-800 dark:border-t-white rounded-full"></span>
               <span>🔍 Analyzing your GitHub projects</span>
             </div>
-            <span className="text-[10px] text-zinc-500 font-medium">
+            <span className="text-[10px] text-zinc-550 dark:text-zinc-400 font-medium">
               This runs once and is cached for 7 days
             </span>
           </div>
           
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-[10px] text-zinc-400">
+            <div className="flex justify-between items-center text-[10px] text-zinc-650 dark:text-zinc-450">
               <span>
                 Processing:{' '}
-                <span className="font-mono text-white">
+                <span className="font-mono text-zinc-900 dark:text-white font-semibold">
                   {analysisProgress.currentRepo || 'Initializing'}
                 </span>{' '}
                 ({analysisProgress.current} of {analysisProgress.total})
               </span>
-              <span className="font-bold">
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">
                 {Math.round(
                   (analysisProgress.current / (analysisProgress.total || 1)) * 100
                 )}
                 %
               </span>
             </div>
-            <div className="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+            <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
               <div
                 className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
                 style={{
@@ -171,40 +257,70 @@ export const Dashboard: React.FC = () => {
       )}
 
       {analysisStatus === 'done' && (
-        <div className="mb-6 bg-[#121212] border border-zinc-800 rounded-xl p-5 flex items-center justify-between shadow-md">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-950/20 border border-emerald-900/30 flex items-center justify-center text-emerald-400 text-xs font-bold">
-              ✓
-            </div>
-            <div>
-              <h4 className="text-xs font-semibold text-white">
-                {repos.length} projects analyzed and ready
-              </h4>
-              <p className="text-[10px] text-zinc-500 mt-0.5">
-                Last updated: {lastUpdatedText()}
-              </p>
-            </div>
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-xl gap-2 shadow-sm animate-fadeIn">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex h-2.5 w-2.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400">
+              {repos.length} repositories analyzed and ready
+            </span>
+            <span className="hidden sm:inline text-emerald-200 dark:text-emerald-900/30">|</span>
+            <span className="text-[10px] text-zinc-550 dark:text-zinc-400 font-medium">
+              Last updated: {lastUpdatedText()}
+            </span>
           </div>
           <button
             onClick={() => user?.id && reAnalyzeAllRepos(user.id)}
-            className="text-[10px] text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-lg bg-zinc-950 transition-all cursor-pointer font-medium"
+            className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-350 transition-colors cursor-pointer bg-white dark:bg-emerald-950/40 border border-emerald-250 dark:border-emerald-900/40 px-2.5 py-1 rounded-lg shadow-sm"
           >
             Re-analyze
           </button>
         </div>
       )}
 
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed bottom-6 right-6 bg-emerald-950 border border-emerald-900 text-emerald-400 text-xs px-4 py-2.5 rounded-xl shadow-2xl z-50 flex items-center gap-2 animate-fadeIn">
-          <span>✓</span>
-          <span>All {repos.length} projects analyzed and ready</span>
+      {/* Bulk Generate Banner */}
+      {missingReadmeCount > 0 && (
+        <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50/50 dark:from-amber-950/10 dark:to-[#121212] border border-amber-200 dark:border-amber-900/30 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-950/40 border border-amber-250 dark:border-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 text-sm font-bold animate-pulse">
+              !
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold text-zinc-900 dark:text-white">
+                {missingReadmeCount} projects have no README.md file
+              </h4>
+              <p className="text-[10px] text-zinc-600 dark:text-zinc-450 mt-0.5">
+                Generate professional READMEs for all of them in one click.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleBulkGenerate}
+            disabled={bulkReadmeProgress !== null}
+            className="text-xs text-amber-700 dark:text-amber-400 border border-amber-250 dark:border-amber-900/60 hover:border-amber-400 dark:hover:border-amber-700 bg-amber-50 dark:bg-amber-955/10 disabled:opacity-50 px-4 py-2 rounded-xl transition-all cursor-pointer font-semibold flex items-center gap-2 whitespace-nowrap self-start sm:self-center shadow-sm"
+          >
+            {bulkReadmeProgress !== null ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-amber-200 dark:border-amber-850 border-t-amber-600 dark:border-t-amber-400 rounded-full animate-spin"></span>
+                <span>{bulkReadmeProgress}</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+                <span>Generate All Missing READMEs</span>
+              </>
+            )}
+          </button>
         </div>
       )}
 
       {/* Warning if no token */}
       {!user?.provider_token && (
-        <div className="p-4 mb-6 bg-amber-950/20 border border-amber-900/30 rounded-xl text-amber-400 text-xs">
+        <div className="p-4 mb-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-xl text-amber-800 dark:text-amber-400 text-xs shadow-sm">
           <p className="font-semibold mb-1">GitHub Token Missing</p>
           We couldn't retrieve your GitHub access token. Please sign out and sign
           in again to authenticate with GitHub and synchronize your repositories.
@@ -213,7 +329,7 @@ export const Dashboard: React.FC = () => {
 
       {/* Error Info */}
       {error && (
-        <div className="p-3 mb-6 bg-red-950/20 border border-red-900/30 rounded-xl text-red-400 text-xs">
+        <div className="p-3 mb-6 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl text-red-700 dark:text-red-400 text-xs shadow-sm">
           {error}
         </div>
       )}
@@ -224,16 +340,16 @@ export const Dashboard: React.FC = () => {
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="border border-zinc-900 bg-[#121212] rounded-xl p-5 h-44 animate-pulse space-y-4"
+              className="border border-zinc-200 dark:border-zinc-900 bg-zinc-50 dark:bg-[#121212] rounded-xl p-5 h-44 animate-pulse space-y-4"
             >
-              <div className="h-4 w-1/3 bg-zinc-850 rounded"></div>
-              <div className="h-3 w-1/4 bg-zinc-850 rounded"></div>
-              <div className="h-10 w-full bg-zinc-850 rounded"></div>
+              <div className="h-4 w-1/3 bg-zinc-200 dark:bg-zinc-800 rounded"></div>
+              <div className="h-3 w-1/4 bg-zinc-200 dark:bg-zinc-800 rounded"></div>
+              <div className="h-10 w-full bg-zinc-200 dark:bg-zinc-800 rounded"></div>
             </div>
           ))}
         </div>
       ) : filteredRepos.length === 0 ? (
-        <div className="border border-dashed border-zinc-900 rounded-xl p-12 text-center flex flex-col items-center justify-center">
+        <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-12 text-center flex flex-col items-center justify-center">
           <svg
             className="w-10 h-10 text-zinc-650 mb-3"
             fill="none"
@@ -258,53 +374,309 @@ export const Dashboard: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredRepos.map((repo) => (
-            <a
-              key={repo.name}
-              href={repo.html_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border border-zinc-900 bg-[#121212] hover:bg-[#151515] hover:border-zinc-800 rounded-xl p-5 flex flex-col justify-between transition-all duration-200 group text-left shadow-sm"
-            >
-              <div>
-                {/* Repo Header */}
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-white group-hover:text-zinc-250 transition-colors">
-                    {repo.name}
-                  </h3>
-                  <div className="flex items-center gap-1.5 bg-[#171717] px-2 py-0.5 rounded border border-zinc-850">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        languageColors[repo.language || ''] || 'bg-zinc-500'
-                      }`}
-                    ></span>
-                    <span className="text-[10px] text-zinc-400 font-medium">
-                      {repo.language || 'Other'}
-                    </span>
+          {filteredRepos.map((repo) => {
+            const isGenerating = generatingReadmeFor === repo.name;
+            const isPushing = pushingReadmeFor === repo.name;
+
+            return (
+              <div
+                key={repo.name}
+                className="border border-zinc-200 dark:border-zinc-900 bg-white dark:bg-[#121212] hover:border-zinc-350 dark:hover:border-zinc-800 rounded-xl p-5 flex flex-col justify-between transition-all duration-200 group shadow-sm relative"
+              >
+                <div>
+                  {/* Repo Header */}
+                  <div className="flex items-center justify-between mb-2">
+                    <a
+                      href={repo.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-bold text-zinc-900 dark:text-white hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors flex items-center gap-1.5 group/link"
+                    >
+                      <span>{repo.name}</span>
+                      <svg
+                        className="w-3.5 h-3.5 text-zinc-600 group-hover/link:text-zinc-400 transition-colors opacity-0 group-hover:opacity-100"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                        />
+                      </svg>
+                    </a>
+                    <div className="flex items-center gap-2">
+                      {/* Language Badge */}
+                      <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-[#171717] px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-850">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            languageColors[repo.language || ''] || 'bg-zinc-500'
+                          }`}
+                        ></span>
+                        <span className="text-[10px] text-zinc-600 dark:text-zinc-400 font-medium">
+                          {repo.language || 'Other'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Description */}
-                <p className="text-zinc-500 text-[11px] leading-relaxed mb-4">
-                  {repo.description || 'No description provided.'}
-                </p>
-              </div>
-
-              {/* README Preview Box */}
-              <div className="mt-auto">
-                <div className="bg-[#161616] border border-zinc-850 rounded-lg p-3">
-                  <span className="text-[9px] font-bold text-zinc-650 tracking-wider uppercase block mb-1">
-                    README Preview
-                  </span>
-                  <p className="text-zinc-400 text-[10px] leading-relaxed font-mono italic">
-                    {repo.readme
-                      ? truncateText(repo.readme, 100)
-                      : 'No README.md content available.'}
+                  {/* Description */}
+                  <p className="text-zinc-550 dark:text-zinc-500 text-[11px] leading-relaxed mb-4">
+                    {repo.description || 'No description provided.'}
                   </p>
                 </div>
+
+                {/* README Preview & Management Section */}
+                <div className="mt-auto space-y-3">
+                  <div className="bg-zinc-50 dark:bg-[#161616] border border-zinc-200 dark:border-zinc-850 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-650 tracking-wider uppercase block">
+                        README Status
+                      </span>
+                      {/* README Status Badge */}
+                      {repo.hasReadme ? (
+                        <span className="bg-emerald-50 dark:bg-emerald-955/40 text-emerald-700 dark:text-emerald-400 border border-emerald-250 dark:border-emerald-900/30 text-[9px] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          README ✓
+                        </span>
+                      ) : (
+                        <span className="bg-amber-50 dark:bg-amber-955/40 text-amber-700 dark:text-amber-400 border border-amber-250 dark:border-amber-900/30 text-[9px] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                          No README
+                        </span>
+                      )}
+                    </div>
+                    
+                    <p className="text-zinc-655 dark:text-zinc-400 text-[10px] leading-relaxed font-mono italic">
+                      {repo.readme
+                        ? truncateText(repo.readme, 80)
+                        : 'No README.md content available.'}
+                    </p>
+                  </div>
+
+                  {/* Actions Bar */}
+                  <div className="flex items-center justify-between">
+                    <div></div>
+                    
+                    {isGenerating || isPushing ? (
+                      <div className="flex items-center gap-2 text-[10px] text-zinc-550 dark:text-zinc-400 font-medium bg-zinc-100 dark:bg-[#161616] px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-850">
+                        <span className="w-3 h-3 border border-zinc-350 dark:border-zinc-750 border-t-zinc-950 dark:border-t-white rounded-full animate-spin"></span>
+                        <span>{isGenerating ? 'Generating...' : 'Pushing...'}</span>
+                      </div>
+                    ) : confirmingUpdateRepo === repo.name ? (
+                      null
+                    ) : repo.hasReadme ? (
+                      <button
+                        onClick={() => setConfirmingUpdateRepo(repo.name)}
+                        className="text-[10px] font-semibold text-zinc-650 dark:text-zinc-450 hover:text-zinc-950 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-350 dark:hover:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                        Update README
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleGenerateReadme(repo.name)}
+                        className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 border border-amber-250 dark:border-amber-900/60 hover:border-amber-400 dark:hover:border-amber-700 bg-amber-50 dark:bg-amber-955/10 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Generate README
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Inline Confirmation */}
+                  {confirmingUpdateRepo === repo.name && (
+                    <div className="p-3 bg-zinc-50 dark:bg-[#161616] border border-zinc-200 dark:border-zinc-850 rounded-lg flex flex-col gap-2 animate-fadeIn">
+                      <p className="text-[11px] text-zinc-700 dark:text-zinc-300 leading-normal">
+                        Regenerate README from current codebase? This will overwrite the existing file on GitHub.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleGenerateReadme(repo.name).then(() => setConfirmingUpdateRepo(null))}
+                          className="text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 px-3 py-1 rounded-md cursor-pointer transition-colors"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setConfirmingUpdateRepo(null)}
+                          className="text-[10px] font-semibold text-zinc-650 dark:text-zinc-450 hover:text-zinc-955 dark:hover:text-white bg-zinc-200 dark:bg-zinc-850 hover:bg-zinc-300 dark:hover:bg-zinc-800 px-3 py-1 rounded-md cursor-pointer transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </a>
-          ))}
+            );
+          })}
+        </div>
+      )}
+
+      {/* README Editor/Preview Modal */}
+      {activeReadmeModalRepo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-[#0f0f0f] border border-zinc-200 dark:border-zinc-850 rounded-2xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">
+                  Markdown Editor — {activeReadmeModalRepo}
+                </h2>
+                <p className="text-[10px] text-zinc-550 dark:text-zinc-500 mt-0.5">
+                  Refine the AI-generated README before pushing to GitHub.
+                </p>
+              </div>
+              <button
+                onClick={handleCloseModal}
+                className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Split Panels */}
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+              {/* Left Pane: Preview */}
+              <div className="w-full md:w-1/2 h-1/2 md:h-full border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-900 flex flex-col overflow-hidden">
+                <div className="bg-zinc-50 dark:bg-[#121212] px-4 py-2 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                  <span>Live Preview</span>
+                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/20 px-1.5 py-0.5 rounded">
+                    Updates Live
+                  </span>
+                </div>
+                <div className="flex-1 p-6 overflow-y-auto max-w-none text-zinc-800 dark:text-zinc-300 text-xs bg-white dark:bg-[#0b0b0b]">
+                  <div className="prose dark:prose-invert max-w-none">
+                    <ReactMarkdown
+                      components={{
+                        h1: ({node, ...props}) => <h1 className="text-lg font-bold text-zinc-900 dark:text-white mb-4 mt-2 border-b border-zinc-200 dark:border-zinc-800 pb-2" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="text-base font-semibold text-zinc-900 dark:text-white mb-3 mt-4" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-sm font-medium text-zinc-800 dark:text-zinc-200 mb-2 mt-3" {...props} />,
+                        p: ({node, ...props}) => <p className="leading-relaxed mb-4 text-zinc-600 dark:text-zinc-400 text-xs" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-1.5 mb-4 text-zinc-650 dark:text-zinc-400" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal list-inside space-y-1.5 mb-4 text-zinc-650 dark:text-zinc-400" {...props} />,
+                        li: ({node, ...props}) => <li className="text-zinc-655 dark:text-zinc-400" {...props} />,
+                        code: ({node, className, children, ...props}) => (
+                          <code className="bg-zinc-100 dark:bg-[#18181b] text-zinc-800 dark:text-zinc-205 border border-zinc-200 dark:border-zinc-850 rounded px-1.5 py-0.5 text-[11px] font-mono" {...props}>
+                            {children}
+                          </code>
+                        ),
+                        pre: ({node, ...props}) => (
+                          <pre className="bg-zinc-50 dark:bg-[#141414] border border-zinc-200 dark:border-zinc-900 rounded-lg p-4 overflow-x-auto text-[11px] font-mono text-zinc-700 dark:text-zinc-300 mb-4" {...props} />
+                        ),
+                        blockquote: ({node, ...props}) => (
+                          <blockquote className="border-l-2 border-zinc-300 dark:border-zinc-800 pl-4 italic text-zinc-500 dark:text-zinc-500 my-4" {...props} />
+                        ),
+                      }}
+                    >
+                      {readmeContent}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Pane: Edit Textarea */}
+              <div className="w-full md:w-1/2 h-1/2 md:h-full flex flex-col overflow-hidden bg-zinc-50 dark:bg-[#121212]">
+                <div className="bg-zinc-50 dark:bg-[#121212] px-4 py-2 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                  <span>Raw Markdown Source</span>
+                  {isEdited && (
+                    <span className="text-[9px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-955/30 border border-amber-200 dark:border-amber-900/20 px-1.5 py-0.5 rounded animate-pulse font-semibold">
+                      Unsaved Changes
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 p-4 overflow-hidden relative">
+                  <textarea
+                    value={readmeContent}
+                    onChange={(e) => {
+                      setReadmeContent(e.target.value);
+                      setIsEdited(true);
+                    }}
+                    className="w-full h-full bg-white dark:bg-[#141414] text-zinc-800 dark:text-zinc-300 font-mono text-xs p-4 rounded-xl border border-zinc-200 dark:border-zinc-900 focus:border-zinc-400 dark:focus:border-zinc-750 focus:outline-none resize-none focus:ring-0 leading-relaxed"
+                    placeholder="Write your README markdown here..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-900 bg-zinc-50 dark:bg-[#121212] flex items-center justify-between">
+              <div>
+                {pushingReadmeFor === activeReadmeModalRepo ? (
+                  <span className="text-[11px] text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+                    <span className="w-3 h-3 border-2 border-zinc-300 dark:border-zinc-800 border-t-zinc-800 dark:border-t-white rounded-full animate-spin"></span>
+                    Pushing to GitHub...
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleCopyMarkdown}
+                  className="border border-zinc-200 dark:border-zinc-850 hover:border-zinc-350 dark:hover:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-zinc-950 transition-colors cursor-pointer shadow-sm"
+                >
+                  {copySuccess ? 'Copied ✓' : 'Copy Markdown'}
+                </button>
+                <button
+                  onClick={handlePushToGitHub}
+                  disabled={pushingReadmeFor !== null}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 px-5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+                >
+                  {pushingReadmeFor === activeReadmeModalRepo ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-emerald-800 border-t-white rounded-full animate-spin"></span>
+                      <span>Pushing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span>Push to GitHub</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleCloseModal}
+                  className="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-350 px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Done Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-6 right-6 bg-emerald-50 dark:bg-emerald-950 border border-emerald-250 dark:border-emerald-900 text-emerald-850 dark:text-emerald-400 text-xs px-4 py-2.5 rounded-xl shadow-2xl z-50 flex items-center gap-2 animate-fadeIn">
+          <span>✓</span>
+          <span>All {repos.length} projects analyzed and ready</span>
+        </div>
+      )}
+
+      {/* Bulk Toast Notification */}
+      {showBulkToast && (
+        <div className="fixed bottom-6 right-6 bg-emerald-50 dark:bg-emerald-950 border border-emerald-250 dark:border-emerald-900 text-emerald-850 dark:text-emerald-400 text-xs px-4 py-2.5 rounded-xl shadow-2xl z-50 flex items-center gap-2 animate-fadeIn">
+          <span>✓</span>
+          <span>{bulkToastCount} READMEs generated and pushed ✓</span>
+        </div>
+      )}
+
+      {/* Individual Push Toast Notification */}
+      {showPushToast && (
+        <div className="fixed bottom-6 right-6 bg-emerald-50 dark:bg-emerald-950 border border-emerald-250 dark:border-emerald-900 text-emerald-850 dark:text-emerald-400 text-xs px-4 py-2.5 rounded-xl shadow-2xl z-50 flex items-center gap-2 animate-fadeIn">
+          <span>✓</span>
+          <span>README pushed to {pushedRepoName} ✓</span>
         </div>
       )}
     </div>

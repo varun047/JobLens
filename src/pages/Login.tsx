@@ -20,18 +20,18 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-zinc-50 dark:bg-[#0f0f0f] flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-200">
       {/* Background glow effects */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-zinc-800/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-zinc-400/5 dark:bg-zinc-800/10 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="w-full max-w-sm bg-[#141414] border border-zinc-900 rounded-2xl p-8 shadow-2xl relative z-10 flex flex-col items-center">
+      <div className="w-full max-w-sm bg-white dark:bg-[#141414] border border-zinc-200 dark:border-zinc-900 rounded-2xl p-8 shadow-2xl dark:shadow-none relative z-10 flex flex-col items-center transition-colors">
         {/* Logo Icon */}
-        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center mb-6 shadow-lg shadow-white/5">
-          <span className="text-[#0f0f0f] font-black text-lg">R</span>
+        <div className="w-10 h-10 rounded-xl bg-zinc-950 dark:bg-white flex items-center justify-center mb-6 shadow-lg shadow-black/5 dark:shadow-white/5 transition-colors">
+          <span className="text-white dark:text-[#0f0f0f] font-black text-lg">R</span>
         </div>
 
         {/* Title */}
-        <h1 className="text-xl font-semibold text-white tracking-tight mb-2">
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight mb-2 animate-fadeIn">
           Welcome to ResumeAI
         </h1>
         <p className="text-zinc-500 text-xs text-center mb-8">
@@ -41,7 +41,7 @@ export const Login: React.FC = () => {
 
         {/* Error message */}
         {error && (
-          <div className="w-full p-3 mb-6 bg-red-950/20 border border-red-900/30 rounded-xl text-red-400 text-xs text-center">
+          <div className="w-full p-3 mb-6 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl text-red-600 dark:text-red-400 text-xs text-center animate-fadeIn">
             {error}
           </div>
         )}
@@ -50,10 +50,10 @@ export const Login: React.FC = () => {
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-white text-[#0f0f0f] hover:bg-zinc-200 active:bg-zinc-300 disabled:opacity-50 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-white/5"
+          className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-zinc-950 dark:bg-white text-white dark:text-[#0f0f0f] hover:bg-zinc-850 dark:hover:bg-zinc-200 active:bg-zinc-900 dark:active:bg-zinc-300 disabled:opacity-50 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-black/5 dark:shadow-white/5"
         >
           {loading ? (
-            <div className="w-4 h-4 border-2 border-zinc-850 border-t-zinc-350 rounded-full animate-spin"></div>
+            <div className="w-4 h-4 border-2 border-zinc-300 dark:border-zinc-800 border-t-zinc-950 dark:border-t-white rounded-full animate-spin"></div>
           ) : (
             <>
               {/* GitHub SVG Icon */}
@@ -66,7 +66,7 @@ export const Login: React.FC = () => {
         </button>
 
         {/* Footer */}
-        <span className="text-[10px] text-zinc-600 mt-6 tracking-wide uppercase">
+        <span className="text-[10px] text-zinc-500 mt-6 tracking-wide uppercase font-bold">
           Secure OAuth authentication
         </span>
       </div>

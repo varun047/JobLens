@@ -13,11 +13,18 @@ interface RepoState {
   repoAnalyses: RepoAnalysis[];
   analysisStatus: 'idle' | 'analyzing' | 'done';
   analysisProgress: { current: number; total: number; currentRepo: string };
+  generatingReadmeFor: string | null;
+  pushingReadmeFor: string | null;
+  bulkReadmeProgress: string | null;
   setRepoAnalyses: (analyses: RepoAnalysis[]) => void;
   setAnalysisStatus: (status: 'idle' | 'analyzing' | 'done') => void;
   setAnalysisProgress: (progress: { current: number; total: number; currentRepo: string }) => void;
   analyzeAllRepos: (userId: string) => Promise<void>;
   reAnalyzeAllRepos: (userId: string) => Promise<void>;
+  generateReadme: (repoName: string) => Promise<string>;
+  pushReadme: (userId: string, repoName: string, content: string) => Promise<void>;
+  analyzeSingleRepo: (userId: string, repoName: string) => Promise<void>;
+  bulkGenerateReadmes: (userId: string) => Promise<void>;
 }
 
 function decodeBase64Utf8(str: string): string {
@@ -84,7 +91,11 @@ async function callOllamaAPI(prompt: string): Promise<any> {
         },
         { role: 'user', content: prompt }
       ],
-      stream: false
+      stream: false,
+      options: {
+        num_predict: 4000,
+        temperature: 0
+      }
     })
   });
 
@@ -107,10 +118,23 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   repoAnalyses: [],
   analysisStatus: 'idle',
   analysisProgress: { current: 0, total: 0, currentRepo: '' },
+  generatingReadmeFor: null,
+  pushingReadmeFor: null,
+  bulkReadmeProgress: null,
   setRepoAnalyses: (repoAnalyses) => set({ repoAnalyses }),
   setAnalysisStatus: (analysisStatus) => set({ analysisStatus }),
   setAnalysisProgress: (analysisProgress) => set({ analysisProgress }),
-  clearRepos: () => set({ repos: [], repoAnalyses: [], error: null, loading: false, analysisStatus: 'idle' }),
+  clearRepos: () =>
+    set({
+      repos: [],
+      repoAnalyses: [],
+      error: null,
+      loading: false,
+      analysisStatus: 'idle',
+      generatingReadmeFor: null,
+      pushingReadmeFor: null,
+      bulkReadmeProgress: null,
+    }),
   fetchRepos: async (token: string) => {
     if (!token) {
       set({ error: 'GitHub access token is missing. Please re-authenticate.' });
@@ -142,6 +166,8 @@ export const useRepoStore = create<RepoState>((set, get) => ({
         languages: {},
         fileTree: [],
         keyFiles: [],
+        hasReadme: false,
+        owner: repo.owner.login,
       }));
 
       // Fetch READMEs, languages, and codebase file structures in parallel, ignoring individual errors
@@ -157,9 +183,11 @@ export const useRepoStore = create<RepoState>((set, get) => ({
         ).then((res) => {
           if (res.data && res.data.content) {
             parsedRepos[index].readme = decodeBase64Utf8(res.data.content);
+            parsedRepos[index].hasReadme = true;
           }
         }).catch(() => {
           parsedRepos[index].readme = '';
+          parsedRepos[index].hasReadme = false;
         });
 
         const languagesPromise = axios.get(
@@ -236,6 +264,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       await Promise.all(detailPromises);
 
       set({ repos: parsedRepos, loading: false });
+      console.log('REPO ANALYSES LOADED:', get().repoAnalyses);
     } catch (err: any) {
       set({
         error:
@@ -286,6 +315,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
         }));
 
         setRepoAnalyses(mapped);
+        console.log('REPO ANALYSES LOADED:', mapped);
         setAnalysisStatus('done');
         return;
       }
@@ -304,20 +334,22 @@ export const useRepoStore = create<RepoState>((set, get) => ({
         setAnalysisProgress({ current: i + 1, total, currentRepo: repo.name });
 
         try {
-          const prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks, no 'Here are' or any text before or after. Start your response with { and end with }. Nothing else.
+          const prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks. Start with { and end with }. Nothing else.
 
-Schema:
-{
-  "summary": "string",          // 2-3 sentence what it does
-  "techStack": ["string"],      // all technologies used
-  "complexity": "beginner" | "intermediate" | "advanced",
-  "domains": ["string"],        // e.g. ["frontend", "fullstack", "dashboard", "api"]
-  "highlights": ["string"]      // top 3 impressive things about this project
-}
-
+Analyze this GitHub project:
 Project name: ${repo.name}
 README: ${repo.readme || 'No README available'}
-Key files: ${repo.keyFiles ? repo.keyFiles.map((f: any) => f.path + ': ' + f.content).join('\n') : 'No key files available'}`;
+File tree: ${(repo.fileTree || []).slice(0, 30).join('\n')}
+Key files: ${(repo.keyFiles || []).map(f => f.path + ':\n' + f.content).join('\n---\n')}
+
+Return this exact JSON:
+{
+  "summary": "string",
+  "techStack": ["string"],
+  "complexity": "beginner" | "intermediate" | "advanced",
+  "domains": ["string"],
+  "highlights": ["string"]
+}`;
 
           const result = await callOllamaAPI(prompt);
 
@@ -383,6 +415,7 @@ Key files: ${repo.keyFiles ? repo.keyFiles.map((f: any) => f.path + ': ' + f.con
       }
 
       setRepoAnalyses(newAnalyses);
+      console.log('REPO ANALYSES LOADED:', newAnalyses);
       setAnalysisStatus('done');
     } catch (err: any) {
       console.error('Codebase analysis error:', err);
@@ -402,5 +435,198 @@ Key files: ${repo.keyFiles ? repo.keyFiles.map((f: any) => f.path + ': ' + f.con
     // Run full analysis
     const { analyzeAllRepos } = get();
     await analyzeAllRepos(userId);
+  },
+  generateReadme: async (repoName: string): Promise<string> => {
+    const { repos } = get();
+    const repo = repos.find((r) => r.name === repoName);
+    if (!repo) throw new Error('Repository not found');
+
+    set({ generatingReadmeFor: repoName });
+    try {
+      const prompt = `Generate a professional README.md for this GitHub project.
+
+Project name: ${repo.name}
+Primary language: ${repo.language || 'Other'}
+File tree: ${(repo.fileTree || []).slice(0, 50).join('\n')}
+Key files:
+${(repo.keyFiles || []).map((f) => `--- ${f.path} ---\n${f.content}`).join('\n')}
+
+Write these sections:
+# Project Name
+## About
+## Tech Stack
+## Features
+## Getting Started
+## Project Structure
+
+Make it professional and accurate. Return ONLY raw markdown.`;
+
+      const response = await fetch('http://localhost:11434/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama3.2',
+          messages: [
+            { role: 'system', content: 'You are a technical writer. Output only raw markdown text.' },
+            { role: 'user', content: prompt }
+          ],
+          stream: false,
+          options: {
+            num_predict: 4000,
+            temperature: 0
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Ollama API error: ${response.status} - ${errText}`);
+      }
+
+      const data = await response.json();
+      return data.message.content;
+    } finally {
+      set({ generatingReadmeFor: null });
+    }
+  },
+  pushReadme: async (userId: string, repoName: string, content: string): Promise<void> => {
+    const { repos, analyzeSingleRepo } = get();
+    const repo = repos.find((r) => r.name === repoName);
+    if (!repo) throw new Error('Repository not found');
+
+    const token = localStorage.getItem('gh_provider_token') || '';
+    if (!token) throw new Error('GitHub access token is missing');
+
+    set({ pushingReadmeFor: repoName });
+    try {
+      let sha: string | undefined;
+      try {
+        const checkRes = await axios.get(
+          `https://api.github.com/repos/${repo.owner}/${repo.name}/contents/README.md`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/vnd.github.v3+json',
+            }
+          }
+        );
+        sha = checkRes.data.sha;
+      } catch (err) {
+        // Doesn't exist (404)
+      }
+
+      const base64Content = btoa(unescape(encodeURIComponent(content)));
+      const body: any = {
+        message: sha ? 'Update README.md via ResumeAI' : 'Add README.md via ResumeAI',
+        content: base64Content,
+      };
+      if (sha) {
+        body.sha = sha;
+      }
+
+      await axios.put(
+        `https://api.github.com/repos/${repo.owner}/${repo.name}/contents/README.md`,
+        body,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+          }
+        }
+      );
+
+      // Update local state
+      repo.readme = content;
+      repo.hasReadme = true;
+      set({ repos: [...repos] });
+
+      // Re-run analysis for this repo only
+      await analyzeSingleRepo(userId, repoName);
+    } finally {
+      set({ pushingReadmeFor: null });
+    }
+  },
+  analyzeSingleRepo: async (userId: string, repoName: string): Promise<void> => {
+    const { repos, repoAnalyses, setRepoAnalyses } = get();
+    const repo = repos.find((r) => r.name === repoName);
+    if (!repo) return;
+
+    try {
+      const prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks. Start with { and end with }. Nothing else.
+
+Analyze this GitHub project:
+Project name: ${repo.name}
+README: ${repo.readme || 'No README available'}
+File tree: ${(repo.fileTree || []).slice(0, 30).join('\n')}
+Key files: ${(repo.keyFiles || []).map((f) => f.path + ':\n' + f.content).join('\n---\n')}
+
+Return this exact JSON:
+{
+  "summary": "string",
+  "techStack": ["string"],
+  "complexity": "beginner" | "intermediate" | "advanced",
+  "domains": ["string"],
+  "highlights": ["string"]
+}`;
+
+      const result = await callOllamaAPI(prompt);
+
+      const dbRow = {
+        user_id: userId,
+        repo_name: repo.name,
+        repo_url: repo.html_url,
+        summary: result.summary || '',
+        tech_stack: result.techStack || [],
+        complexity: result.complexity || 'beginner',
+        domains: result.domains || [],
+        highlights: result.highlights || [],
+        raw_files: repo.keyFiles || [],
+        analyzed_at: new Date().toISOString(),
+      };
+
+      await supabase
+        .from('repo_analyses')
+        .delete()
+        .eq('user_id', userId)
+        .eq('repo_name', repoName);
+
+      await supabase.from('repo_analyses').insert(dbRow);
+
+      const updatedAnalysis: RepoAnalysis = {
+        repo_name: repo.name,
+        repo_url: repo.html_url,
+        summary: result.summary || '',
+        techStack: result.techStack || [],
+        complexity: (result.complexity as any) || 'beginner',
+        domains: result.domains || [],
+        highlights: result.highlights || [],
+        raw_files: repo.keyFiles || [],
+        analyzed_at: new Date().toISOString(),
+      };
+
+      const filtered = repoAnalyses.filter((a) => a.repo_name !== repoName);
+      setRepoAnalyses([...filtered, updatedAnalysis]);
+    } catch (err) {
+      console.error(`Error analyzing single repo ${repoName}:`, err);
+    }
+  },
+  bulkGenerateReadmes: async (userId: string): Promise<void> => {
+    const { repos, generateReadme, pushReadme } = get();
+    const missingRepos = repos.filter((r) => !r.hasReadme);
+    if (missingRepos.length === 0) return;
+
+    const total = missingRepos.length;
+    for (let i = 0; i < total; i++) {
+      const repo = missingRepos[i];
+      set({ bulkReadmeProgress: `Generating README ${i + 1} of ${total}...` });
+      try {
+        const generated = await generateReadme(repo.name);
+        await pushReadme(userId, repo.name, generated);
+      } catch (err) {
+        console.error(`Error in bulk README generation for ${repo.name}:`, err);
+      }
+      await delay(500);
+    }
+    set({ bulkReadmeProgress: null });
   },
 }));

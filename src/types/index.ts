@@ -17,6 +17,7 @@ export interface Project {
   name: string;
   tech: string[];
   bullets: string[];
+  link?: string;
 }
 
 export interface Education {
@@ -29,10 +30,13 @@ export interface ParsedResume {
   name: string;
   email: string;
   phone: string;
+  linkedin?: string;
+  github?: string;
   skills: string[];
   experience: Experience[];
   projects: Project[];
   education: Education[];
+  achievements?: string[];
   rawText?: string;
 }
 
@@ -46,6 +50,8 @@ export interface GitHubRepo {
   languages?: Record<string, number>;
   fileTree?: string[];
   keyFiles?: { path: string; content: string }[];
+  hasReadme?: boolean;
+  owner?: string;
 }
 
 export interface RankedProject {
@@ -73,4 +79,17 @@ export interface RepoAnalysis {
   highlights: string[];
   raw_files?: any[];
   analyzed_at?: string;
+}
+
+export interface HistoryAnalysis {
+  id: string;
+  user_id: string;
+  job_title: string;
+  company_name: string;
+  jd_text: string;
+  tailored_resume: ParsedResume;
+  ats_score: { before: number; after: number };
+  missing_keywords: string[];
+  career_advice: CareerAdvice;
+  created_at: string;
 }

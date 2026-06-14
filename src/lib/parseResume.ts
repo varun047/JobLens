@@ -9,11 +9,24 @@ Schema:
   "name": "string",
   "email": "string",
   "phone": "string",
+  "linkedin": "string or null",
+  "github": "string or null",
   "skills": ["string"],
   "experience": [{ "company": "string", "role": "string", "duration": "string", "bullets": ["string"] }],
-  "projects": [{ "name": "string", "tech": ["string"], "bullets": ["string"] }],
-  "education": [{ "institution": "string", "degree": "string", "year": "string" }]
+  "projects": [{ "name": "string", "tech": ["string"], "bullets": ["string"], "link": "string or null" }],
+  "education": [{ "institution": "string", "degree": "string", "year": "string" }],
+  "achievements": ["string"]
 }
+
+Also extract:
+- linkedin: LinkedIn profile URL if present
+- github: GitHub profile URL if present  
+- achievements: array of achievement/responsibility strings
+  (look for sections like 'Achievements', 'Responsibilities', 
+   'Extra-Curricular', 'Positions of Responsibility')
+- For each project, extract 'link' if a URL is mentioned
+
+Return these in the JSON schema.
 
 Resume text:
 ${text}`;
@@ -30,7 +43,11 @@ ${text}`;
         },
         { role: 'user', content: prompt }
       ],
-      stream: false
+      stream: false,
+      options: {
+        num_predict: 4000,
+        temperature: 0
+      }
     })
   });
 
