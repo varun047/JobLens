@@ -8,6 +8,7 @@ import Analyze from './pages/Analyze';
 import Analytics from './pages/Analytics';
 import History from './pages/History';
 import { Resumes } from './pages/Resumes';
+import Templates from './pages/Templates';
 import { useAuthStore } from './store/authStore';
 
 function App() {
@@ -71,6 +72,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Resumes />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/templates"
+              element={
+                <ProtectedRoute>
+                  <Templates />
                 </ProtectedRoute>
               }
             />

@@ -60,6 +60,12 @@ export const Navbar: React.FC = () => {
             <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
           </svg>
         );
+      case 'Templates':
+        return (
+          <svg className={`w-4 h-4 ${color}`} fill="none" stroke="currentColor" strokeWidth={stroke} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+          </svg>
+        );
       case 'History':
         return (
           <svg className={`w-4 h-4 ${color}`} fill="none" stroke="currentColor" strokeWidth={stroke} viewBox="0 0 24 24">
@@ -129,6 +135,7 @@ export const Navbar: React.FC = () => {
             {renderSidebarLink('/onboarding', 'Resume Profile')}
             {renderSidebarLink('/analyze', 'Analyze')}
             {renderSidebarLink('/resumes', 'Resumes', analyses.length)}
+            {renderSidebarLink('/templates', 'Templates')}
             {renderSidebarLink('/history', 'History', analyses.length)}
             {renderSidebarLink('/analytics', 'Analytics')}
           </nav>
@@ -234,6 +241,21 @@ export const Navbar: React.FC = () => {
               {analyses.length}
             </span>
           )}
+        </Link>
+ 
+        {/* Item 3.7: Templates */}
+        <Link
+          to="/templates"
+          className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 relative ${
+            isActive('/templates')
+              ? 'bg-zinc-950 dark:bg-white text-white dark:text-[#0f0f0f] shadow-md scale-105'
+              : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-655 dark:hover:text-white'
+          }`}
+          title="Templates"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+          </svg>
         </Link>
  
         {/* Item 4: List (History) */}
