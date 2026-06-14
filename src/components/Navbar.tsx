@@ -5,7 +5,7 @@ import { useRepoStore } from '../store/repoStore';
 import { useResumeStore } from '../store/resumeStore';
 import { ThemeToggle } from './ThemeToggle';
 import { useHistoryStore } from '../store/historyStore';
-import logoDark from '../assets/logo-dark.png';
+import { Logo } from './Logo';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -119,8 +119,8 @@ export const Navbar: React.FC = () => {
         <div className="flex flex-col">
           {/* Logo Header */}
           <div className="flex items-center gap-3 px-2 mb-10">
-            <div className="w-8 h-8 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center shadow-inner">
-              <img src={logoDark} alt="JobLens Logo" className="w-full h-full object-contain p-1" />
+            <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shadow-inner">
+              <Logo size={20} />
             </div>
             <span className="font-extrabold text-base tracking-tight text-white">
               JobLens
@@ -145,27 +145,32 @@ export const Navbar: React.FC = () => {
           <ThemeToggle variant="sidebar" />
           
           {/* User badge */}
-          <div className="w-full flex items-center justify-between bg-white/5 dark:bg-black/20 p-2.5 rounded-xl border border-white/5 gap-2 shadow-inner hover:bg-white/10 hover:border-white/15 transition-all duration-300 hover:-translate-y-0.5 cursor-pointer">
+          <div className="w-full flex items-center justify-between p-1.5 rounded-xl gap-2 hover:bg-white/5 transition-all duration-300 cursor-pointer">
             <div className="flex items-center gap-2 min-w-0">
               <img
                 src={user.avatar_url}
                 alt={user.name}
-                className="w-7.5 h-7.5 rounded-full border border-white/20 shadow-sm"
+                className="w-8 h-8 rounded-full border border-white/10 shadow-sm object-cover"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
                     'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80';
                 }}
               />
-              <span className="text-[11px] font-bold text-white truncate max-w-[100px]">
-                {user.name}
-              </span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[11px] font-bold text-white truncate max-w-[110px] tracking-tight leading-tight">
+                  {user.name}
+                </span>
+                <span className="text-[9px] font-semibold text-zinc-400">
+                  Free Account
+                </span>
+              </div>
             </div>
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg text-zinc-300 hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer"
               title="Sign Out"
             >
-              <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
               </svg>
             </button>

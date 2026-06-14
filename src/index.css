@@ -123,3 +123,15 @@
   animation: progress-shimmer 1.8s infinite linear;
 }
 
+/* Card hover z-index transition delay utility */
+.card-hover-z-index {
+  transition: z-index 0s step-end 500ms;
+  z-index: 1;
+}
+
+.card-hover-z-index:hover {
+  transition: z-index 0s step-start 0s;
+  z-index: 50;
+}
+
+

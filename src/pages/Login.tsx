@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import logoLight from '../assets/logo-light.png';
-import logoDark from '../assets/logo-dark.png';
+import { Logo } from '../components/Logo';
 
 export const Login: React.FC = () => {
   const { user, login, loading, error } = useAuthStore();
@@ -28,9 +27,8 @@ export const Login: React.FC = () => {
 
       <div className="w-full max-w-sm bg-white dark:bg-[#141414] border border-zinc-200 dark:border-zinc-900 rounded-2xl p-8 shadow-2xl dark:shadow-none relative z-10 flex flex-col items-center transition-colors">
         {/* Logo Icon */}
-        <div className="w-24 h-24 mb-6 flex items-center justify-center">
-          <img src={logoLight} alt="JobLens Logo" className="dark:hidden w-full h-full object-contain" />
-          <img src={logoDark} alt="JobLens Logo" className="hidden dark:block w-full h-full object-contain" />
+        <div className="w-24 h-24 mb-6 flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl shadow-inner">
+          <Logo size={56} />
         </div>
 
         {/* Title */}

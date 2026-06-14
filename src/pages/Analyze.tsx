@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { ParsedResume } from '../types';
 import { useAuthStore } from '../store/authStore';
@@ -179,6 +179,8 @@ export const Analyze: React.FC = () => {
   const [savingAnalysis, setSavingAnalysis] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const wasRunning = useRef(false);
+
   const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [companyInsight, setCompanyInsight] = useState<CompanyInsight | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<ResumeStyle>('modern');
@@ -244,9 +246,10 @@ export const Analyze: React.FC = () => {
 
   // Automatically show save modal and collapse config panel when analysis finishes
   useEffect(() => {
-    if (agentStatus === 'done') {
+    if (agentStatus === 'done' && wasRunning.current) {
       setShowSaveModal(true);
       setShowConfig(false);
+      wasRunning.current = false;
     }
   }, [agentStatus]);
 
@@ -385,6 +388,7 @@ export const Analyze: React.FC = () => {
       return;
     }
     const selectedRepos = repos.filter((r) => selectedRepoNames.has(r.name));
+    wasRunning.current = true;
     await runAgent(
       selectedRepos,
       baseResume,
@@ -399,6 +403,7 @@ export const Analyze: React.FC = () => {
     setJdText(draft.jd_text || '');
     setSelectedCompany(draft.company_name || '');
     setSelectedJobTitle(draft.job_title || '');
+    wasRunning.current = true;
     
     if (draft.step_completed >= 1) {
       setStep1Result(draft.ranked_projects || []);
