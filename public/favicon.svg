@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <style>
+      .doc-outline {
+        stroke: #1e293b;
+        stroke-width: 7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+      }
+      .doc-line {
+        stroke: #1e293b;
+        stroke-width: 7;
+        stroke-linecap: round;
+        fill: none;
+      }
+      .doc-fold {
+        stroke: #1e293b;
+        stroke-width: 7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+      }
+      .accent-glass {
+        stroke: #8b5cf6;
+        stroke-width: 8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+      }
+      .accent-handle {
+        stroke: #8b5cf6;
+        stroke-width: 8;
+        stroke-linecap: round;
+        fill: none;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .doc-outline { stroke: #f4f4f5; }
+        .doc-line { stroke: #f4f4f5; }
+        .doc-fold { stroke: #f4f4f5; }
+        .accent-glass { stroke: #c084fc; }
+        .accent-handle { stroke: #c084fc; }
+      }
+    </style>
+    <mask id="lens-mask">
+      <rect x="0" y="0" width="100" height="100" fill="white" />
+      <circle cx="70" cy="70" r="18" fill="black" />
+    </mask>
+  </defs>
+
+  <!-- Masked Document Outline & Lines -->
+  <g mask="url(#lens-mask)">
+    <!-- Document outline with rounded corners and top-right folded corner -->
+    <path class="doc-outline" d="M 25 25 A 8 8 0 0 1 33 17 L 55 17 L 75 37 L 75 70 A 8 8 0 0 1 67 78 L 33 78 A 8 8 0 0 1 25 70 Z" />
+    
+    <!-- Dog-ear fold outline -->
+    <path class="doc-fold" d="M 55 17 L 55 37 L 75 37" />
+
+    <!-- Document text lines -->
+    <line class="doc-line" x1="38" y1="46" x2="62" y2="46" />
+    <line class="doc-line" x1="38" y1="58" x2="52" y2="58" />
+  </g>
+
+  <!-- Magnifying glass overlay (purple accent) -->
+  <circle class="accent-glass" cx="70" cy="70" r="13" />
+  <line class="accent-handle" x1="79.5" y1="79.5" x2="90" y2="90" />
+</svg>

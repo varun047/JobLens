@@ -5,7 +5,7 @@ import { useRepoStore } from '../store/repoStore';
 import { useResumeStore } from '../store/resumeStore';
 import { ThemeToggle } from './ThemeToggle';
 import { useHistoryStore } from '../store/historyStore';
-import logoImg from '../assets/logo.png';
+import logoDark from '../assets/logo-dark.png';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -120,7 +120,7 @@ export const Navbar: React.FC = () => {
           {/* Logo Header */}
           <div className="flex items-center gap-3 px-2 mb-10">
             <div className="w-8 h-8 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center shadow-inner">
-              <img src={logoImg} alt="JobLens Logo" className="w-full h-full object-cover scale-[1.75] -translate-y-[15%]" />
+              <img src={logoDark} alt="JobLens Logo" className="w-full h-full object-contain p-1" />
             </div>
             <span className="font-extrabold text-base tracking-tight text-white">
               JobLens

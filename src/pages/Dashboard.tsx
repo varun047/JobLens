@@ -16,7 +16,7 @@ const languageColors: Record<string, string> = {
   'C++': 'bg-pink-500',
   C: 'bg-gray-400',
   Swift: 'bg-orange-500',
-  Kotlin: 'bg-violet-400',
+  Kotlin: 'bg-emerald-400',
   PHP: 'bg-indigo-400',
   Shell: 'bg-lime-400',
 };
