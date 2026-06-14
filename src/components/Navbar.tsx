@@ -82,10 +82,10 @@ export const Navbar: React.FC = () => {
     return (
       <Link
         to={to}
-        className={`group flex items-center justify-between pl-5 pr-4 py-3.5 text-xs font-semibold tracking-wide transition-all relative ${
+        className={`group flex items-center justify-between px-4 py-3 text-xs font-semibold tracking-wide transition-all duration-300 ease-out rounded-2xl border backdrop-blur-md cursor-pointer ${
           active
-            ? 'bg-zinc-50 dark:bg-[#0f0f0f] text-emerald-800 dark:text-emerald-400 rounded-l-2xl mr-[-1px] z-10 border-y border-l border-zinc-200/20 dark:border-zinc-900/50 shadow-[-4px_4px_10px_-5px_rgba(0,0,0,0.1)]'
-            : 'text-zinc-300 hover:text-white hover:bg-white/5 rounded-l-2xl'
+            ? 'bg-white/10 border-white/20 text-white shadow-[0_8px_20px_-6px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.1)] hover:-translate-y-0.5 hover:scale-[1.02] hover:bg-white/15 hover:border-white/25 hover:shadow-[0_12px_24px_-4px_rgba(16,185,129,0.5),inset_0_1px_0_rgba(255,255,255,0.2)]'
+            : 'bg-white/[0.02] border-white/[0.05] text-zinc-300 hover:text-white hover:bg-white/[0.08] hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:scale-[1.02]'
         }`}
       >
         <div className="flex items-center gap-3">
@@ -93,16 +93,14 @@ export const Navbar: React.FC = () => {
           <span>{label}</span>
         </div>
         {badge !== undefined && badge > 0 && (
-          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold shadow-sm ${
+          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm transition-all ${
             active 
-              ? 'bg-emerald-600 dark:bg-emerald-700 text-white' 
-              : 'bg-white/10 text-white'
+              ? 'bg-emerald-600 text-white' 
+              : 'bg-white/10 text-zinc-300 group-hover:bg-white/20 group-hover:text-white'
           }`}>
             {badge}
           </span>
         )}
-        {active && <div className="sidebar-curve-top" />}
-        {active && <div className="sidebar-curve-bottom" />}
       </Link>
     );
   };
@@ -110,10 +108,10 @@ export const Navbar: React.FC = () => {
   return (
     <>
       {/* Desktop Vertical Sidebar */}
-      <aside className="md:flex hidden flex-col w-64 h-screen fixed left-0 top-0 bg-gradient-to-b from-teal-950 via-emerald-900 to-zinc-955/95 border-r border-teal-900/30 py-8 z-50 justify-between pr-0">
+      <aside className="md:flex hidden flex-col w-64 h-screen fixed left-0 top-0 bg-gradient-to-b from-teal-955/95 via-emerald-950/95 to-zinc-955/98 border-r border-white/5 py-8 z-50 justify-between px-4">
         <div className="flex flex-col">
           {/* Leaf Logo Header */}
-          <div className="flex items-center gap-3 px-6 mb-10">
+          <div className="flex items-center gap-3 px-2 mb-10">
             <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 shadow-inner">
               <svg className="w-4.5 h-4.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747C19.78 12.227 16.5 12 12 12c-4.5 0-7.78.227-8.716 2.253A9.004 9.004 0 0012 21z" />
@@ -126,7 +124,7 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex flex-col gap-1.5 pl-4">
+          <nav className="flex flex-col gap-3">
             {renderSidebarLink('/dashboard', 'Dashboard')}
             {renderSidebarLink('/onboarding', 'Resume Profile')}
             {renderSidebarLink('/analyze', 'Analyze')}
@@ -137,12 +135,12 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Sidebar Footer Controls */}
-        <div className="flex flex-col gap-6 items-center px-6 pt-6 border-t border-white/10">
+        <div className="flex flex-col gap-6 items-center px-2 pt-6 border-t border-white/10">
           {/* Vertical Capsule Theme Switch */}
           <ThemeToggle variant="sidebar" />
           
           {/* User badge */}
-          <div className="w-full flex items-center justify-between bg-white/5 dark:bg-black/20 p-2.5 rounded-xl border border-white/5 gap-2 shadow-inner">
+          <div className="w-full flex items-center justify-between bg-white/5 dark:bg-black/20 p-2.5 rounded-xl border border-white/5 gap-2 shadow-inner hover:bg-white/10 hover:border-white/15 transition-all duration-300 hover:-translate-y-0.5 cursor-pointer">
             <div className="flex items-center gap-2 min-w-0">
               <img
                 src={user.avatar_url}
