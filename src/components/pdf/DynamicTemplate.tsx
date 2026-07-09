@@ -168,6 +168,10 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
       fontSize: fSize * 0.9,
       lineHeight: 1.35,
     },
+    bodyText: {
+      fontSize: fSize * 0.9,
+      lineHeight: 1.35,
+    }
   });
 
   if (config.baseStyle === 'two-column') {
@@ -179,24 +183,66 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
             <Text style={styles.sidebarName}>{resume.name}</Text>
             
             <Text style={styles.sidebarSection}>Contact</Text>
-            <Text style={styles.sidebarText}>{resume.email}</Text>
-            <Text style={styles.sidebarText}>{resume.phone}</Text>
+            {resume.email && (
+              <Link src={`mailto:${resume.email}`} style={styles.sidebarLink}>
+                {resume.email}
+              </Link>
+            )}
+            {resume.phone && <Text style={styles.sidebarText}>{resume.phone}</Text>}
             {linkedinUrl && (
-              <Link src={linkedinUrl} style={styles.sidebarLink}>LinkedIn</Link>
+              <Link src={linkedinUrl} style={styles.sidebarLink}>LinkedIn ↗</Link>
             )}
             {githubUrl && (
-              <Link src={githubUrl} style={styles.sidebarLink}>GitHub</Link>
+              <Link src={githubUrl} style={styles.sidebarLink}>GitHub ↗</Link>
+            )}
+            {resume.portfolio && (
+              <Link src={resume.portfolio} style={styles.sidebarLink}>Portfolio ↗</Link>
             )}
 
-            {resume.skills && resume.skills.length > 0 && (
+            {/* Skills */}
+            {resume.skillCategories && resume.skillCategories.length > 0 ? (
               <View>
                 <Text style={styles.sidebarSection}>Skills</Text>
-                {resume.skills.map((skill, idx) => (
-                  <Text key={idx} style={styles.sidebarText}>• {skill}</Text>
+                {resume.skillCategories.map((cat, idx) => (
+                  <View key={idx} style={{ marginBottom: 4 }}>
+                    <Text style={[styles.sidebarText, { fontFamily: 'Helvetica-Bold', fontSize: fSize * 0.8 }]}>
+                      {cat.category}
+                    </Text>
+                    <Text style={[styles.sidebarText, { fontSize: fSize * 0.8, color: '#e2e8f0' }]}>
+                      {cat.skills.join(', ')}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              resume.skills && resume.skills.length > 0 && (
+                <View>
+                  <Text style={styles.sidebarSection}>Skills</Text>
+                  {resume.skills.map((skill, idx) => (
+                    <Text key={idx} style={styles.sidebarText}>• {skill}</Text>
+                  ))}
+                </View>
+              )
+            )}
+
+            {/* Certifications */}
+            {resume.certifications && resume.certifications.length > 0 && (
+              <View>
+                <Text style={styles.sidebarSection}>Certifications</Text>
+                {resume.certifications.map((cert, idx) => (
+                  <View key={idx} style={{ marginBottom: 3 }}>
+                    <Text style={[styles.sidebarText, { fontFamily: 'Helvetica-Bold' }]}>
+                      {cert.name}
+                    </Text>
+                    <Text style={[styles.sidebarText, { fontSize: fSize * 0.75, color: '#cccccc' }]}>
+                      {cert.issuer}{cert.year ? ` (${cert.year})` : ''}
+                    </Text>
+                  </View>
                 ))}
               </View>
             )}
 
+            {/* Achievements */}
             {resume.achievements && resume.achievements.length > 0 && (
               <View>
                 <Text style={styles.sidebarSection}>Achievements</Text>
@@ -209,9 +255,19 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
 
           {/* Main Body */}
           <View style={styles.main}>
+            {/* Professional Summary */}
+            {resume.summary && (
+              <View style={{ marginBottom: 6 }}>
+                <Text style={styles.sectionTitle}>Professional Summary</Text>
+                <Text style={[styles.bodyText, { fontStyle: 'italic', color: config.secondaryColor }]}>
+                  {resume.summary.split('|').map(line => line.trim()).join('\n')}
+                </Text>
+              </View>
+            )}
+
             {/* Experience */}
             {resume.experience && resume.experience.length > 0 && (
-              <View>
+              <View style={{ marginBottom: 6 }}>
                 <Text style={styles.sectionTitle}>Experience</Text>
                 {resume.experience.map((exp, i) => (
                   <View key={i} style={styles.entryBlock}>
@@ -219,7 +275,9 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
                       <Text style={styles.entryTitle}>{exp.role}</Text>
                       <Text style={styles.entryDate}>{exp.duration}</Text>
                     </View>
-                    <Text style={styles.entrySubtitle}>{exp.company}</Text>
+                    <Text style={styles.entrySubtitle}>
+                      {exp.company}{exp.location ? ` (${exp.location})` : ''}
+                    </Text>
                     {exp.bullets?.map((b, bi) => (
                       <View key={bi} style={styles.bullet}>
                         <Text style={styles.bulletDot}>•</Text>
@@ -233,15 +291,20 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
 
             {/* Projects */}
             {resume.projects && resume.projects.length > 0 && (
-              <View>
+              <View style={{ marginBottom: 6 }}>
                 <Text style={styles.sectionTitle}>Projects</Text>
                 {resume.projects.map((proj, i) => (
                   <View key={i} style={styles.entryBlock}>
                     <View style={styles.entryRow}>
                       <Text style={styles.entryTitle}>{proj.name}</Text>
-                      {proj.link && (
-                        <Link src={proj.link} style={styles.link}>View Project</Link>
-                      )}
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {proj.link && (
+                          <Link src={proj.link} style={styles.link}>GitHub ↗</Link>
+                        )}
+                        {proj.liveDemo && (
+                          <Link src={proj.liveDemo} style={styles.link}>Live Demo ↗</Link>
+                        )}
+                      </View>
                     </View>
                     {proj.tech && proj.tech.length > 0 && (
                       <Text style={styles.entrySubtitle}>{proj.tech.join(', ')}</Text>
@@ -259,7 +322,7 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
 
             {/* Education */}
             {resume.education && resume.education.length > 0 && (
-              <View>
+              <View style={{ marginBottom: 6 }}>
                 <Text style={styles.sectionTitle}>Education</Text>
                 {resume.education.map((edu, i) => (
                   <View key={i} style={styles.entryBlock}>
@@ -267,7 +330,41 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
                       <Text style={styles.entryTitle}>{edu.institution}</Text>
                       <Text style={styles.entryDate}>{edu.year}</Text>
                     </View>
-                    <Text style={styles.entrySubtitle}>{edu.degree}</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={styles.entrySubtitle}>{edu.degree}</Text>
+                      {edu.grade && (
+                        <Text style={[styles.entryDate, { fontFamily: 'Helvetica-Bold' }]}>
+                          Grade: {edu.grade}
+                        </Text>
+                      )}
+                    </View>
+                    {edu.coursework && edu.coursework.length > 0 && (
+                      <Text style={[styles.entrySubtitle, { fontSize: fSize * 0.8, marginTop: 1 }]}>
+                        Coursework: {edu.coursework.join(', ')}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Positions of Responsibility */}
+            {resume.positions && resume.positions.length > 0 && (
+              <View style={{ marginBottom: 6 }}>
+                <Text style={styles.sectionTitle}>Positions of Responsibility</Text>
+                {resume.positions.map((pos, i) => (
+                  <View key={i} style={styles.entryBlock}>
+                    <View style={styles.entryRow}>
+                      <Text style={styles.entryTitle}>{pos.title}</Text>
+                      <Text style={styles.entryDate}>{pos.duration}</Text>
+                    </View>
+                    <Text style={styles.entrySubtitle}>{pos.organization}</Text>
+                    {pos.description && (
+                      <View style={styles.bullet}>
+                        <Text style={styles.bulletDot}>•</Text>
+                        <Text style={styles.bulletText}>{pos.description}</Text>
+                      </View>
+                    )}
                   </View>
                 ))}
               </View>
@@ -286,41 +383,77 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
         <View style={styles.header}>
           <Text style={styles.name}>{resume.name}</Text>
           <View style={styles.contactRow}>
-            <Text style={styles.contactItem}>{resume.email}</Text>
-            <Text style={styles.contactItem}> | </Text>
-            <Text style={styles.contactItem}>{resume.phone}</Text>
+            {resume.email && <Link src={`mailto:${resume.email}`} style={styles.link}>{resume.email}</Link>}
+            {resume.phone && (
+              <>
+                <Text style={styles.contactItem}> | </Text>
+                <Text style={styles.contactItem}>{resume.phone}</Text>
+              </>
+            )}
             {linkedinUrl && (
               <>
                 <Text style={styles.contactItem}> | </Text>
-                <Link src={linkedinUrl} style={styles.link}>LinkedIn</Link>
+                <Link src={linkedinUrl} style={styles.link}>LinkedIn ↗</Link>
               </>
             )}
             {githubUrl && (
               <>
                 <Text style={styles.contactItem}> | </Text>
-                <Link src={githubUrl} style={styles.link}>GitHub</Link>
+                <Link src={githubUrl} style={styles.link}>GitHub ↗</Link>
+              </>
+            )}
+            {resume.portfolio && (
+              <>
+                <Text style={styles.contactItem}> | </Text>
+                <Link src={resume.portfolio} style={styles.link}>Portfolio ↗</Link>
               </>
             )}
           </View>
           {config.baseStyle === 'modern' && <View style={styles.accentLine} />}
         </View>
 
-        {/* Skills */}
-        {resume.skills && resume.skills.length > 0 && (
-          <View style={{ marginBottom: 8 }}>
-            <Text style={styles.sectionTitle}>Technical Skills</Text>
-            {config.skillsLayout === 'tags' ? (
-              <Text style={styles.skillItem}>
-                {resume.skills.join(' • ')}
-              </Text>
-            ) : (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                {resume.skills.map((skill, idx) => (
-                  <Text key={idx} style={styles.skillItem}>• {skill}</Text>
-                ))}
-              </View>
-            )}
+        {/* Professional Summary */}
+        {resume.summary && (
+          <View style={{ marginBottom: 6 }}>
+            <Text style={styles.sectionTitle}>Professional Summary</Text>
+            <Text style={[styles.bodyText, { fontStyle: 'italic', color: config.secondaryColor }]}>
+              {resume.summary.split('|').map(line => line.trim()).join('\n')}
+            </Text>
           </View>
+        )}
+
+        {/* Skills */}
+        {resume.skillCategories && resume.skillCategories.length > 0 ? (
+          <View style={{ marginBottom: 6 }}>
+            <Text style={styles.sectionTitle}>Technical Skills</Text>
+            {resume.skillCategories.map((cat, idx) => (
+              <View key={idx} style={{ flexDirection: 'row', marginBottom: 3 }}>
+                <Text style={[{ fontFamily: 'Helvetica-Bold', width: 100, fontSize: fSize * 0.9, color: config.primaryColor }]}>
+                  {cat.category}:
+                </Text>
+                <Text style={{ flex: 1, fontSize: fSize * 0.9 }}>
+                  {cat.skills.join(', ')}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          resume.skills && resume.skills.length > 0 && (
+            <View style={{ marginBottom: 8 }}>
+              <Text style={styles.sectionTitle}>Technical Skills</Text>
+              {config.skillsLayout === 'tags' ? (
+                <Text style={styles.skillItem}>
+                  {resume.skills.join(' • ')}
+                </Text>
+              ) : (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {resume.skills.map((skill, idx) => (
+                    <Text key={idx} style={styles.skillItem}>• {skill}</Text>
+                  ))}
+                </View>
+              )}
+            </View>
+          )
         )}
 
         {/* Experience */}
@@ -331,7 +464,7 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
               <View key={i} style={styles.entryBlock}>
                 <View style={styles.entryRow}>
                   <Text style={styles.entryTitle}>
-                    {exp.role} — {exp.company}
+                    {exp.role} — {exp.company}{exp.location ? ` (${exp.location})` : ''}
                   </Text>
                   <Text style={styles.entryDate}>{exp.duration}</Text>
                 </View>
@@ -354,9 +487,14 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
               <View key={i} style={styles.entryBlock}>
                 <View style={styles.entryRow}>
                   <Text style={styles.entryTitle}>{proj.name}</Text>
-                  {proj.link && (
-                    <Link src={proj.link} style={styles.link}>View Project</Link>
-                  )}
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    {proj.link && (
+                      <Link src={proj.link} style={styles.link}>GitHub ↗</Link>
+                    )}
+                    {proj.liveDemo && (
+                      <Link src={proj.liveDemo} style={styles.link}>Live Demo ↗</Link>
+                    )}
+                  </View>
                 </View>
                 {proj.tech && proj.tech.length > 0 && (
                   <Text style={styles.entrySubtitle}>{proj.tech.join(', ')}</Text>
@@ -382,7 +520,19 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
                   <Text style={styles.entryTitle}>{edu.institution}</Text>
                   <Text style={styles.entryDate}>{edu.year}</Text>
                 </View>
-                <Text style={styles.entrySubtitle}>{edu.degree}</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={styles.entrySubtitle}>{edu.degree}</Text>
+                  {edu.grade && (
+                    <Text style={[styles.entryDate, { fontFamily: 'Helvetica-Bold' }]}>
+                      Grade: {edu.grade}
+                    </Text>
+                  )}
+                </View>
+                {edu.coursework && edu.coursework.length > 0 && (
+                  <Text style={[styles.entrySubtitle, { fontSize: fSize * 0.8, marginTop: 1 }]}>
+                    Coursework: {edu.coursework.join(', ')}
+                  </Text>
+                )}
               </View>
             ))}
           </View>
@@ -396,6 +546,46 @@ export const DynamicTemplate: React.FC<DynamicTemplateProps> = ({ resume, links,
               <View key={i} style={styles.bullet}>
                 <Text style={styles.bulletDot}>•</Text>
                 <Text style={styles.bulletText}>{ach}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Positions of Responsibility */}
+        {resume.positions && resume.positions.length > 0 && (
+          <View style={{ marginBottom: 8 }}>
+            <Text style={styles.sectionTitle}>Positions of Responsibility</Text>
+            {resume.positions.map((pos, i) => (
+              <View key={i} style={styles.entryBlock}>
+                <View style={styles.entryRow}>
+                  <Text style={styles.entryTitle}>
+                    {pos.title} — {pos.organization}
+                  </Text>
+                  <Text style={styles.entryDate}>{pos.duration}</Text>
+                </View>
+                {pos.description && (
+                  <View style={styles.bullet}>
+                    <Text style={styles.bulletDot}>•</Text>
+                    <Text style={styles.bulletText}>{pos.description}</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Certifications */}
+        {resume.certifications && resume.certifications.length > 0 && (
+          <View style={{ marginBottom: 8 }}>
+            <Text style={styles.sectionTitle}>Certifications</Text>
+            {resume.certifications.map((cert, i) => (
+              <View key={i} style={styles.entryBlock}>
+                <View style={styles.entryRow}>
+                  <Text style={styles.entryTitle}>
+                    {cert.name}{cert.issuer ? ` — ${cert.issuer}` : ''}
+                  </Text>
+                  {cert.year && <Text style={styles.entryDate}>{cert.year}</Text>}
+                </View>
               </View>
             ))}
           </View>

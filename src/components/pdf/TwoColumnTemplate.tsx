@@ -10,23 +10,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff'
   },
   sidebar: {
-    width: '30%',
+    width: '32%',
     backgroundColor: '#1a1a2e',
     paddingTop: 30,
     paddingBottom: 30,
-    paddingLeft: 15,
-    paddingRight: 15,
+    paddingLeft: 12,
+    paddingRight: 12,
     color: '#ffffff'
   },
   main: {
-    width: '70%',
+    width: '68%',
     paddingTop: 30,
     paddingBottom: 30,
-    paddingLeft: 20,
-    paddingRight: 20
+    paddingLeft: 18,
+    paddingRight: 18
   },
   sidebarName: { 
-    fontSize: 15, 
+    fontSize: 14, 
     fontFamily: 'Helvetica-Bold', 
     color: '#ffffff', 
     marginBottom: 8,
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', 
     letterSpacing: 2, 
     color: '#aaaaaa', 
-    marginTop: 16, 
+    marginTop: 14, 
     marginBottom: 6,
     borderBottomWidth: 0.5,
     borderBottomColor: '#444444',
@@ -79,7 +79,8 @@ const styles = StyleSheet.create({
   bullet: { flexDirection: 'row', marginBottom: 2.5, paddingLeft: 4 },
   bulletDot: { width: 10, fontSize: 9, color: '#1a1a2e' },
   bulletText: { flex: 1, fontSize: 8.5, lineHeight: 1.4 },
-  link: { fontSize: 8.5, color: '#1a1a2e', textDecoration: 'underline' }
+  link: { fontSize: 8.5, color: '#1a1a2e', textDecoration: 'underline' },
+  bodyText: { fontSize: 8.5, lineHeight: 1.4, color: '#444444' }
 });
 
 interface TwoColumnTemplateProps {
@@ -102,24 +103,66 @@ export const TwoColumnTemplate: React.FC<TwoColumnTemplateProps> = ({ resume, li
           <Text style={styles.sidebarName}>{resume.name}</Text>
           
           <Text style={styles.sidebarSection}>Contact</Text>
-          <Text style={styles.sidebarText}>{resume.email}</Text>
-          <Text style={styles.sidebarText}>{resume.phone}</Text>
+          {resume.email && (
+            <Link src={`mailto:${resume.email}`} style={styles.sidebarLink}>
+              {resume.email}
+            </Link>
+          )}
+          {resume.phone && <Text style={styles.sidebarText}>{resume.phone}</Text>}
           {linkedinUrl && (
-            <Link src={linkedinUrl} style={styles.sidebarLink}>LinkedIn</Link>
+            <Link src={linkedinUrl} style={styles.sidebarLink}>LinkedIn ↗</Link>
           )}
           {githubUrl && (
-            <Link src={githubUrl} style={styles.sidebarLink}>GitHub</Link>
+            <Link src={githubUrl} style={styles.sidebarLink}>GitHub ↗</Link>
+          )}
+          {resume.portfolio && (
+            <Link src={resume.portfolio} style={styles.sidebarLink}>Portfolio ↗</Link>
           )}
 
-          {resume.skills && resume.skills.length > 0 && (
+          {/* Skills */}
+          {resume.skillCategories && resume.skillCategories.length > 0 ? (
             <View>
               <Text style={styles.sidebarSection}>Skills</Text>
-              {resume.skills.map((skill, idx) => (
-                <Text key={idx} style={styles.sidebarText}>• {skill}</Text>
+              {resume.skillCategories.map((cat, idx) => (
+                <View key={idx} style={{ marginBottom: 4 }}>
+                  <Text style={[styles.sidebarText, { fontFamily: 'Helvetica-Bold', color: '#ffffff', fontSize: 7.5 }]}>
+                    {cat.category}
+                  </Text>
+                  <Text style={[styles.sidebarText, { fontSize: 7.5, color: '#cccccc' }]}>
+                    {cat.skills.join(', ')}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            resume.skills && resume.skills.length > 0 && (
+              <View>
+                <Text style={styles.sidebarSection}>Skills</Text>
+                {resume.skills.map((skill, idx) => (
+                  <Text key={idx} style={styles.sidebarText}>• {skill}</Text>
+                ))}
+              </View>
+            )
+          )}
+
+          {/* Certifications */}
+          {resume.certifications && resume.certifications.length > 0 && (
+            <View>
+              <Text style={styles.sidebarSection}>Certifications</Text>
+              {resume.certifications.map((cert, idx) => (
+                <View key={idx} style={{ marginBottom: 3 }}>
+                  <Text style={[styles.sidebarText, { fontFamily: 'Helvetica-Bold' }]}>
+                    {cert.name}
+                  </Text>
+                  <Text style={[styles.sidebarText, { fontSize: 7.5, color: '#cccccc' }]}>
+                    {cert.issuer}{cert.year ? ` (${cert.year})` : ''}
+                  </Text>
+                </View>
               ))}
             </View>
           )}
 
+          {/* Achievements */}
           {resume.achievements && resume.achievements.length > 0 && (
             <View>
               <Text style={styles.sidebarSection}>Achievements</Text>
@@ -132,6 +175,16 @@ export const TwoColumnTemplate: React.FC<TwoColumnTemplateProps> = ({ resume, li
 
         {/* Main Content */}
         <View style={styles.main}>
+          {/* Professional Summary */}
+          {resume.summary && (
+            <View style={{ marginBottom: 8 }}>
+              <Text style={styles.mainSection}>Professional Summary</Text>
+              <Text style={[styles.bodyText, { fontStyle: 'italic' }]}>
+                {resume.summary.split('|').map(line => line.trim()).join('\n')}
+              </Text>
+            </View>
+          )}
+
           {/* Experience */}
           {resume.experience && resume.experience.length > 0 && (
             <View>
@@ -144,7 +197,9 @@ export const TwoColumnTemplate: React.FC<TwoColumnTemplateProps> = ({ resume, li
                     </Text>
                     <Text style={styles.entryDate}>{exp.duration}</Text>
                   </View>
-                  <Text style={styles.entrySubtitle}>{exp.company}</Text>
+                  <Text style={styles.entrySubtitle}>
+                    {exp.company}{exp.location ? ` (${exp.location})` : ''}
+                  </Text>
                   {exp.bullets?.map((b, bi) => (
                     <View key={bi} style={styles.bullet}>
                       <Text style={styles.bulletDot}>•</Text>
@@ -164,11 +219,18 @@ export const TwoColumnTemplate: React.FC<TwoColumnTemplateProps> = ({ resume, li
                 <View key={i} style={styles.entryBlock}>
                   <View style={styles.entryRow}>
                     <Text style={styles.entryTitle}>{proj.name}</Text>
-                    {proj.link && (
-                      <Link src={proj.link} style={styles.link}>
-                        View Project
-                      </Link>
-                    )}
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      {proj.link && (
+                        <Link src={proj.link} style={styles.link}>
+                          GitHub ↗
+                        </Link>
+                      )}
+                      {proj.liveDemo && (
+                        <Link src={proj.liveDemo} style={styles.link}>
+                          Live Demo ↗
+                        </Link>
+                      )}
+                    </View>
                   </View>
                   {proj.tech && proj.tech.length > 0 && (
                     <Text style={styles.entrySubtitle}>
@@ -196,7 +258,41 @@ export const TwoColumnTemplate: React.FC<TwoColumnTemplateProps> = ({ resume, li
                     <Text style={styles.entryTitle}>{edu.institution}</Text>
                     <Text style={styles.entryDate}>{edu.year}</Text>
                   </View>
-                  <Text style={styles.entrySubtitle}>{edu.degree}</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.entrySubtitle}>{edu.degree}</Text>
+                    {edu.grade && (
+                      <Text style={[styles.entryDate, { fontFamily: 'Helvetica-Bold' }]}>
+                        Grade: {edu.grade}
+                      </Text>
+                    )}
+                  </View>
+                  {edu.coursework && edu.coursework.length > 0 && (
+                    <Text style={[styles.entrySubtitle, { fontSize: 7.5, marginTop: 1 }]}>
+                      Coursework: {edu.coursework.join(', ')}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Positions of Responsibility */}
+          {resume.positions && resume.positions.length > 0 && (
+            <View>
+              <Text style={styles.mainSection}>Positions of Responsibility</Text>
+              {resume.positions.map((pos, i) => (
+                <View key={i} style={styles.entryBlock}>
+                  <View style={styles.entryRow}>
+                    <Text style={styles.entryTitle}>{pos.title}</Text>
+                    <Text style={styles.entryDate}>{pos.duration}</Text>
+                  </View>
+                  <Text style={styles.entrySubtitle}>{pos.organization}</Text>
+                  {pos.description && (
+                    <View style={styles.bullet}>
+                      <Text style={styles.bulletDot}>•</Text>
+                      <Text style={styles.bulletText}>{pos.description}</Text>
+                    </View>
+                  )}
                 </View>
               ))}
             </View>
