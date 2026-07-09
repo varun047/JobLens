@@ -14,7 +14,8 @@ export async function researchCompany(
   company: string,
   jobTitle: string
 ): Promise<CompanyInsight> {
-  const response = await fetch('http://localhost:11434/api/chat', {
+  const ollamaUrl = (import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434').replace(/\/+$/, '');
+  const response = await fetch(`${ollamaUrl}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
