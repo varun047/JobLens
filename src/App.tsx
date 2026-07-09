@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
@@ -10,9 +11,33 @@ import History from './pages/History';
 import { Resumes } from './pages/Resumes';
 import Templates from './pages/Templates';
 import { useAuthStore } from './store/authStore';
+import { supabase } from './lib/supabase';
 
 function App() {
-  const { user } = useAuthStore();
+  const { user, setSession, setLoading } = useAuthStore();
+
+  useEffect(() => {
+    // Check current session
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+
+    // Listen to session changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [setSession, setLoading]);
 
   return (
     <BrowserRouter>
