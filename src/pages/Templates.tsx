@@ -336,17 +336,17 @@ export const Templates: React.FC = () => {
       {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-xl.5 font-black text-zinc-900 dark:text-white flex items-center gap-2">
+          <h1 className="font-heading text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
             <span>🎨</span> Template Manager
           </h1>
-          <p className="text-xs text-zinc-550 dark:text-zinc-500 mt-1">
+          <p className="font-body text-sm text-zinc-500 dark:text-white/50 mt-1">
             Design and customize your resume templates. Saved layouts will be available when downloading optimized resumes.
           </p>
         </div>
         {!isEditing && (
           <button
             onClick={handleCreateNew}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+            className="font-body text-sm font-semibold tracking-[0.1px] px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
           >
             + Create New Template
           </button>
@@ -653,8 +653,13 @@ export const Templates: React.FC = () => {
                   onClick={() => handleEdit(tpl.id)}
                   className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-700 rounded-2xl p-5 text-left cursor-pointer transition-all hover:-translate-y-0.5 shadow-sm group"
                 >
-                  <p className="font-bold text-zinc-900 dark:text-white text-sm mb-1">{tpl.name}</p>
-                  <p className="text-zinc-550 dark:text-zinc-450 text-[11px] mb-3 leading-relaxed">{tpl.desc}</p>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <p className="font-heading text-sm font-bold text-zinc-900 dark:text-white truncate">{tpl.name}</p>
+                    <span className="font-body text-[8px] font-extrabold uppercase tracking-wider text-zinc-450 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-850">
+                      Preset
+                    </span>
+                  </div>
+                  <p className="font-body text-xs text-zinc-500 dark:text-white/50 mb-3 leading-relaxed">{tpl.desc}</p>
                   <div className="flex justify-between items-center mt-4 border-t border-zinc-100 dark:border-zinc-950 pt-3">
                     <div className="flex gap-1.5">
                       {tpl.colors.map((c, idx) => (
@@ -701,14 +706,19 @@ export const Templates: React.FC = () => {
                     {/* Delete action overlay */}
                     <button
                       onClick={(e) => handleDelete(tpl.id, e)}
-                      className="absolute top-4 right-4 p-1.5 hover:bg-red-500/10 hover:text-red-400 text-zinc-450 dark:text-zinc-500 rounded-lg transition-colors cursor-pointer"
+                      className="absolute top-4 right-4 p-1.5 hover:bg-red-500/10 hover:text-red-400 text-zinc-450 dark:text-zinc-500 rounded-lg transition-colors cursor-pointer z-10"
                       title="Delete Template"
                     >
                       🗑️
                     </button>
 
-                    <p className="font-bold text-zinc-900 dark:text-white text-sm mb-1 truncate pr-8">{tpl.name}</p>
-                    <p className="text-zinc-550 dark:text-zinc-450 text-[11px] mb-3 capitalize">Base: {tpl.baseStyle.replace('-', ' ')}</p>
+                    <div className="flex items-center justify-between gap-2 mb-1.5 pr-8">
+                      <p className="font-heading text-sm font-bold text-zinc-900 dark:text-white truncate">{tpl.name}</p>
+                      <span className="font-body text-[8px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-250 dark:border-emerald-900/30">
+                        Custom
+                      </span>
+                    </div>
+                    <p className="font-body text-xs text-zinc-500 dark:text-white/50 mb-3 capitalize">Base: {tpl.baseStyle.replace('-', ' ')}</p>
                     
                     <div className="flex justify-between items-center mt-4 border-t border-zinc-100 dark:border-zinc-950 pt-3">
                       <div className="flex gap-1.5">

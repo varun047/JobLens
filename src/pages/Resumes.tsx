@@ -286,13 +286,13 @@ export const Resumes: React.FC = () => {
                   {/* Metadata inside front flap */}
                   <div className="flex items-start justify-between relative z-30">
                     <div className="flex-1 min-w-0 pr-2">
-                      <h3 className="font-extrabold text-[13px] text-zinc-900 dark:text-white truncate tracking-tight leading-tight">
+                      <h3 className="font-heading text-base font-bold text-zinc-900 dark:text-white truncate">
                         {analysis.company_name}
                       </h3>
-                      <p className="text-[11px] text-zinc-550 dark:text-zinc-400 truncate mt-0.5 font-semibold">
+                      <p className="font-body text-sm text-zinc-500 dark:text-white/55 truncate mt-0.5">
                         {analysis.job_title}
                       </p>
-                      <p className="text-[9px] text-zinc-400 dark:text-zinc-550 mt-1.5 font-bold">
+                      <p className="font-body text-[11px] text-zinc-400 dark:text-white/30 mt-1.5">
                         {new Date(analysis.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -362,13 +362,13 @@ export const Resumes: React.FC = () => {
                     {analysis.ats_score?.after || 0}%
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-zinc-900 dark:text-white truncate">
+                    <p className="font-heading text-base font-bold text-zinc-900 dark:text-white truncate">
                       {analysis.company_name}
                     </p>
                     
                     {/* Responsive Subtitle */}
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="text-xs text-zinc-550 dark:text-zinc-400 truncate">
+                      <span className="font-body text-sm text-zinc-500 dark:text-white/55 truncate">
                         {analysis.job_title}
                       </span>
                       
@@ -383,7 +383,7 @@ export const Resumes: React.FC = () => {
                           <span className="text-[10px] text-zinc-405 dark:text-zinc-650 md:hidden">•</span>
                           <div className="flex gap-1 items-center md:hidden">
                             {analysis.tailored_resume.skills.slice(0, 2).map((skill: string, i: number) => (
-                              <span key={i} className="px-1.5 py-0.2 bg-zinc-50 dark:bg-zinc-800/40 text-[9px] text-zinc-600 dark:text-zinc-450 rounded border border-zinc-200 dark:border-zinc-800/60 font-medium">
+                              <span key={i} className="font-body text-[11px] font-medium text-zinc-550 dark:text-white/50 bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/8 px-2 py-0.5 rounded">
                                 {skill}
                               </span>
                             ))}
@@ -400,10 +400,7 @@ export const Resumes: React.FC = () => {
                   {analysis.tailored_resume?.skills?.length > 0 && (
                     <div className="hidden lg:flex items-center gap-1.5 flex-wrap justify-end max-w-[200px] xl:max-w-[350px]">
                       {analysis.tailored_resume.skills.slice(0, 3).map((skill: string, i: number) => (
-                        <span key={i} className="px-2 py-0.5 bg-zinc-50 dark:bg-zinc-800/60 
-                                                 text-zinc-700 dark:text-zinc-300 
-                                                 text-[10px] rounded border border-zinc-200 
-                                                 dark:border-zinc-800/80 font-medium">
+                        <span key={i} className="font-body text-[11px] font-medium text-zinc-550 dark:text-white/50 bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/8 px-2 py-0.5 rounded">
                           {skill}
                         </span>
                       ))}
@@ -622,13 +619,12 @@ export const Resumes: React.FC = () => {
                 {/* Skills */}
                 {selectedResume.tailored_resume?.skills?.length > 0 && (
                   <div>
-                    <h3 className="text-xs font-bold text-zinc-900 dark:text-white 
-                                   uppercase tracking-wider mb-2">Skills</h3>
+                    <h3 className="font-body text-[10px] font-bold tracking-[1.5px] uppercase text-zinc-450 dark:text-white/40 mb-2">Skills</h3>
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {selectedResume.tailored_resume.skills.map((s: string, idx: number) => (
                         <span
                           key={idx}
-                          className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-250 px-2.5 py-0.5 rounded text-[10px]"
+                          className="font-body text-[11px] font-medium text-zinc-550 dark:text-white/50 bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/8 px-2 py-0.5 rounded"
                         >
                           {s}
                         </span>
