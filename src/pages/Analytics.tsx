@@ -147,8 +147,8 @@ export const Analytics: React.FC = () => {
     <div className="max-w-6xl mx-auto px-6 py-10 space-y-8 text-zinc-950 dark:text-zinc-200 transition-colors">
       {/* Page Header */}
       <div>
-        <h1 className="text-xl font-bold text-zinc-900 dark:text-white">Analytics Dashboard</h1>
-        <p className="text-xs text-zinc-550 dark:text-zinc-450 mt-1">
+        <h1 className="font-heading text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">Analytics</h1>
+        <p className="font-body text-sm text-zinc-500 dark:text-white/50 mt-1">
           Monitor your tailoring metrics, ATS improvements, and job search targeting.
         </p>
       </div>
@@ -157,63 +157,63 @@ export const Analytics: React.FC = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Avg ATS Improvement */}
         <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 flex flex-col justify-between transition-colors shadow-sm">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-450 dark:text-zinc-500">
+          <span className="font-body text-[10px] font-bold uppercase tracking-[1.5px] text-zinc-500 dark:text-white/40 mb-2">
             Avg ATS Improvement
           </span>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-extrabold text-zinc-900 dark:text-white">
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="font-heading text-4xl font-bold tabular-nums tracking-tight text-zinc-900 dark:text-white">
               {stats?.avgAfter}%
             </span>
-            <span className="text-[10px] text-emerald-500 font-bold">
+            <span className="text-[11px] text-emerald-500 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-200/30">
               +{Math.max(0, (stats?.avgAfter || 0) - (stats?.avgBefore || 0))}pts
             </span>
           </div>
-          <span className="text-[9px] text-zinc-500 mt-2 block">
+          <span className="font-body text-xs text-zinc-400 dark:text-white/45 mt-2 block">
             Compared to {stats?.avgBefore}% baseline score
           </span>
         </div>
 
         {/* Card 2: Total Tailorings */}
         <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 flex flex-col justify-between transition-colors shadow-sm">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-450 dark:text-zinc-500">
+          <span className="font-body text-[10px] font-bold uppercase tracking-[1.5px] text-zinc-500 dark:text-white/40 mb-2">
             Total Tailorings
           </span>
-          <div className="mt-3">
-            <span className="text-2xl font-extrabold text-zinc-900 dark:text-white">
+          <div className="mt-1">
+            <span className="font-heading text-4xl font-bold tabular-nums tracking-tight text-zinc-900 dark:text-white">
               {stats?.totalRuns}
             </span>
           </div>
-          <span className="text-[9px] text-zinc-500 mt-2 block">
+          <span className="font-body text-xs text-zinc-400 dark:text-white/45 mt-2 block">
             Resumes optimized using AI
           </span>
         </div>
 
         {/* Card 3: Top Targeted Role */}
         <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 flex flex-col justify-between transition-colors shadow-sm">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-450 dark:text-zinc-500">
+          <span className="font-body text-[10px] font-bold uppercase tracking-[1.5px] text-zinc-500 dark:text-white/40 mb-2">
             Top Targeted Role
           </span>
-          <div className="mt-3 truncate">
-            <span className="text-lg font-bold text-zinc-900 dark:text-white truncate block">
+          <div className="mt-1 truncate">
+            <span className="font-heading text-xl font-bold tracking-tight text-zinc-900 dark:text-white truncate block">
               {stats?.topRole}
             </span>
           </div>
-          <span className="text-[9px] text-zinc-500 mt-2 block">
+          <span className="font-body text-xs text-zinc-400 dark:text-white/45 mt-2 block">
             Most frequent job title analyzed
           </span>
         </div>
 
         {/* Card 4: Highest ATS Score */}
         <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 flex flex-col justify-between transition-colors shadow-sm">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-450 dark:text-zinc-500">
+          <span className="font-body text-[10px] font-bold uppercase tracking-[1.5px] text-zinc-500 dark:text-white/40 mb-2">
             Highest ATS Score
           </span>
-          <div className="mt-3">
-            <span className="text-2xl font-extrabold text-zinc-900 dark:text-white">
+          <div className="mt-1">
+            <span className="font-heading text-4xl font-bold tabular-nums tracking-tight text-zinc-900 dark:text-white">
               {stats?.maxScore}%
             </span>
           </div>
-          <span className="text-[9px] text-zinc-500 mt-2 block">
+          <span className="font-body text-xs text-zinc-400 dark:text-white/45 mt-2 block">
             Best optimization score achieved
           </span>
         </div>
@@ -234,11 +234,15 @@ export const Analytics: React.FC = () => {
                 <YAxis domain={[0, 100]} stroke="#888888" />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                    border: '1px solid #333',
-                    borderRadius: '8px',
-                    color: '#fff',
+                    backgroundColor: 'rgba(9, 9, 11, 0.95)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(128, 128, 128, 0.2)',
+                    borderRadius: '10px',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
                   }}
+                  labelStyle={{ color: '#f4f4f5', fontWeight: '600', fontSize: '11px' }}
+                  itemStyle={{ fontSize: '11px' }}
+                  cursor={{ stroke: 'rgba(128, 128, 128, 0.25)', strokeWidth: 1 }}
                 />
                 <Legend wrapperStyle={{ paddingTop: 10 }} />
                 <Line
@@ -283,11 +287,14 @@ export const Analytics: React.FC = () => {
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                    border: '1px solid #333',
-                    borderRadius: '8px',
-                    color: '#fff',
+                    backgroundColor: 'rgba(9, 9, 11, 0.95)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(128, 128, 128, 0.2)',
+                    borderRadius: '10px',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
                   }}
+                  labelStyle={{ color: '#f4f4f5', fontWeight: '600', fontSize: '11px' }}
+                  itemStyle={{ fontSize: '11px' }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -324,11 +331,15 @@ export const Analytics: React.FC = () => {
                 <YAxis stroke="#888888" allowDecimals={false} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                    border: '1px solid #333',
-                    borderRadius: '8px',
-                    color: '#fff',
+                    backgroundColor: 'rgba(9, 9, 11, 0.95)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(128, 128, 128, 0.2)',
+                    borderRadius: '10px',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
                   }}
+                  labelStyle={{ color: '#f4f4f5', fontWeight: '600', fontSize: '11px' }}
+                  itemStyle={{ fontSize: '11px' }}
+                  cursor={{ fill: 'rgba(128, 128, 128, 0.08)' }}
                 />
                 <Bar dataKey="count" fill="#10B981" radius={[4, 4, 0, 0]}>
                   {stats?.skillData.map((_, index) => (
@@ -358,11 +369,15 @@ export const Analytics: React.FC = () => {
                 <YAxis dataKey="name" type="category" stroke="#888888" width={80} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                    border: '1px solid #333',
-                    borderRadius: '8px',
-                    color: '#fff',
+                    backgroundColor: 'rgba(9, 9, 11, 0.95)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(128, 128, 128, 0.2)',
+                    borderRadius: '10px',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
                   }}
+                  labelStyle={{ color: '#f4f4f5', fontWeight: '600', fontSize: '11px' }}
+                  itemStyle={{ fontSize: '11px' }}
+                  cursor={{ fill: 'rgba(128, 128, 128, 0.08)' }}
                 />
                 <Bar dataKey="count" fill="#6366F1" radius={[0, 4, 4, 0]} />
               </BarChart>

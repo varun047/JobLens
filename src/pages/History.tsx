@@ -102,17 +102,17 @@ export const History: React.FC = () => {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <p className={`font-semibold text-sm truncate ${
-                      selectedAnalysis?.id === analysis.id ? 'text-zinc-900 dark:text-white' : 'text-zinc-800 dark:text-white'
+                    <p className={`font-heading text-sm font-semibold truncate ${
+                      selectedAnalysis?.id === analysis.id ? 'text-zinc-900 dark:text-white' : 'text-zinc-700 dark:text-zinc-400'
                     }`}>
                       {analysis.company_name || 'Company'}
                     </p>
-                    <p className={`text-xs truncate mt-0.5 ${
-                      selectedAnalysis?.id === analysis.id ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-600 dark:text-zinc-400'
+                    <p className={`font-body text-xs truncate mt-0.5 ${
+                      selectedAnalysis?.id === analysis.id ? 'text-zinc-500 dark:text-white/50' : 'text-zinc-400 dark:text-white/40'
                     }`}>
                       {analysis.job_title || 'Job Title'}
                     </p>
-                    <p className="text-zinc-400 dark:text-zinc-500 text-xs mt-1">
+                    <p className="font-body text-[10px] text-zinc-400 dark:text-white/30 mt-1">
                       {new Date(analysis.created_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -148,13 +148,13 @@ export const History: React.FC = () => {
 
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight">
+              <h1 className="font-heading text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white mb-2">
                 {selectedAnalysis.company_name}
               </h1>
-              <p className="text-lg font-medium text-zinc-700 dark:text-zinc-300">
+              <p className="font-body text-base text-zinc-600 dark:text-white/60 mt-1">
                 {selectedAnalysis.job_title}
               </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+              <p className="font-body text-xs text-zinc-400 dark:text-white/45 mt-2">
                 Analyzed on{' '}
                 {new Date(selectedAnalysis.created_at).toLocaleDateString('en-US', {
                   weekday: 'long',
