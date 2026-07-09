@@ -10,6 +10,7 @@ import { downloadResumePDF, type ResumeStyle } from '../lib/generatePDF';
 import { extractJobFromUrl, type ExtractedJob } from '../lib/jobBoardExtractor';
 import { researchCompany, type CompanyInsight } from '../lib/companyResearch';
 import { useTemplateStore } from '../store/templateStore';
+import { getBulletBadges } from '../lib/validateResume';
 
 
 
@@ -62,6 +63,37 @@ const diffText = (oldText: string, newText: string) => {
     return <span key={idx}>{part}</span>;
   });
 };
+
+function validateTailoredResume(resume: ParsedResume): string[] {
+  const issues: string[] = [];
+  
+  if (!resume.summary) issues.push('Missing professional summary');
+  
+  resume.experience?.forEach(exp => {
+    exp.bullets?.forEach(bullet => {
+      const weakVerbs = ['worked', 'assisted', 'helped', 'participated', 
+                         'observed', 'gained', 'was responsible'];
+      if (weakVerbs.some(v => bullet.toLowerCase().startsWith(v))) {
+        issues.push(`Weak bullet in ${exp.company}: "${bullet.slice(0,40)}..."`);
+      }
+      if (bullet.split(' ').length < 8) {
+        issues.push(`Too short bullet in ${exp.company}: "${bullet}"`);
+      }
+    });
+  });
+  
+  resume.projects?.forEach(proj => {
+    if (proj.bullets?.length < 2) {
+      issues.push(`${proj.name} needs more bullets`);
+    }
+  });
+  
+  if (resume.skills?.length < 8) {
+    issues.push('Skills section too sparse — add more');
+  }
+  
+  return issues;
+}
 
 const CircularProgress = ({
   score,
@@ -136,8 +168,10 @@ export const Analyze: React.FC = () => {
     rankedProjects,
     tailoredResume,
     atsScore,
+    atsBreakdown,
     missingKeywords,
     careerAdvice,
+    jdIntelligence,
     agentStatus,
     statusMessage,
     error: agentError,
@@ -165,6 +199,8 @@ export const Analyze: React.FC = () => {
     'resume'
   );
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
+
+  const qualityIssues = tailoredResume ? validateTailoredResume(tailoredResume) : [];
 
   // Job Board URL Scraper & Metadata States
   const [extracting, setExtracting] = useState(false);
@@ -537,12 +573,14 @@ export const Analyze: React.FC = () => {
   }
 
   const isRunning = [
+    'extracting',
     'step1',
     'step1_done',
     'step2a',
-    'step2a_done',
     'step2b',
-    'step2b_done',
+    'step2c',
+    'step2d',
+    'step2_done',
     'step3',
     'step3_done'
   ].includes(agentStatus);
@@ -550,25 +588,31 @@ export const Analyze: React.FC = () => {
   const isRepoDataLoading = reposLoading || (repos.length > 0 && repoAnalyses.length === 0);
 
   let progressPercent = 0;
-  if (['step1_done', 'step2a'].includes(agentStatus)) progressPercent = 25;
-  else if (['step2a_done', 'step2b'].includes(agentStatus)) progressPercent = 50;
-  else if (['step2b_done', 'step3'].includes(agentStatus)) progressPercent = 75;
-  else if (['step3_done', 'done'].includes(agentStatus)) progressPercent = 100;
-  else if (agentStatus === 'step1') progressPercent = 10;
+  if (agentStatus === 'extracting') progressPercent = 5;
+  else if (agentStatus === 'step1') progressPercent = 15;
+  else if (agentStatus === 'step1_done') progressPercent = 25;
+  else if (agentStatus === 'step2a') progressPercent = 35;
+  else if (agentStatus === 'step2b') progressPercent = 50;
+  else if (agentStatus === 'step2c') progressPercent = 65;
+  else if (agentStatus === 'step2d') progressPercent = 75;
+  else if (agentStatus === 'step2_done') progressPercent = 80;
+  else if (agentStatus === 'step3') progressPercent = 90;
+  else if (agentStatus === 'step3_done') progressPercent = 95;
+  else if (agentStatus === 'done') progressPercent = 100;
 
   const renderStep = (stepNum: number, label: string) => {
     let status: 'pending' | 'active' | 'done' = 'pending';
     
     if (stepNum === 1) {
-      if (['step1_done', 'step2a', 'step2a_done', 'step2b', 'step2b_done', 'step3', 'step3_done', 'done'].includes(agentStatus)) {
+      if (['step1_done', 'step2a', 'step2b', 'step2c', 'step2d', 'step2_done', 'step3', 'step3_done', 'done'].includes(agentStatus)) {
         status = 'done';
       } else if (agentStatus === 'step1') {
         status = 'active';
       }
     } else if (stepNum === 2) {
-      if (['step2b_done', 'step3', 'step3_done', 'done'].includes(agentStatus)) {
+      if (['step2_done', 'step3', 'step3_done', 'done'].includes(agentStatus)) {
         status = 'done';
-      } else if (['step2a', 'step2a_done', 'step2b'].includes(agentStatus)) {
+      } else if (['step2a', 'step2b', 'step2c', 'step2d'].includes(agentStatus)) {
         status = 'active';
       }
     } else if (stepNum === 3) {
@@ -766,22 +810,49 @@ export const Analyze: React.FC = () => {
                   <div className="space-y-2.5">
                     {exp.bullets.map((bullet, bulletIdx) => {
                       const origBullet = originalExp?.bullets?.[bulletIdx] || '';
+                      const bulletBadges = getBulletBadges(origBullet, bullet, jdIntelligence);
+
                       return (
                         <div
                           key={bulletIdx}
-                          className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-zinc-100/60 dark:bg-zinc-955/40 rounded-xl border border-zinc-200 dark:border-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-800 transition-colors"
+                          className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-zinc-100/60 dark:bg-zinc-955/40 rounded-xl border border-zinc-200 dark:border-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-800 transition-colors animate-fadeIn"
                         >
-                          <div className="text-[10px] text-zinc-600 dark:text-zinc-450 italic leading-relaxed">
-                            <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-600 block mb-1">
+                          <div className="text-[10px] text-zinc-600 dark:text-zinc-455 italic leading-relaxed">
+                            <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-650 block mb-1">
                               Original Bullet
                             </span>
                             {origBullet || 'N/A'}
                           </div>
-                          <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-900 pt-2.5 md:pt-0 md:pl-4">
-                            <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500/80 block mb-1">
-                              Tailored Rewrite
-                            </span>
-                            {diffText(origBullet, bullet)}
+                          <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-900 pt-2.5 md:pt-0 md:pl-4 flex flex-col justify-between">
+                            <div>
+                              <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500/80 block mb-1">
+                                Tailored Rewrite
+                              </span>
+                              {diffText(origBullet, bullet)}
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {bulletBadges.includes('Action verb') && (
+                                <span className="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-455 border border-emerald-250 dark:border-emerald-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
+                                  ⚡ Action verb
+                                </span>
+                              )}
+                              {bulletBadges.includes('Quantified') && (
+                                <span className="bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-455 border border-blue-250 dark:border-blue-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
+                                  📊 Quantified
+                                </span>
+                              )}
+                              {bulletBadges.includes('JD keyword') && (
+                                <span className="bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-455 border border-indigo-250 dark:border-indigo-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
+                                  🎯 JD keyword
+                                </span>
+                              )}
+                              {bulletBadges.includes('Impact') && (
+                                <span className="bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-455 border border-amber-250 dark:border-amber-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
+                                  ✨ Impact focused
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -837,22 +908,49 @@ export const Analyze: React.FC = () => {
                   <div className="space-y-2.5">
                     {proj.bullets.map((bullet, bulletIdx) => {
                       const origBullet = originalProj?.bullets?.[bulletIdx] || '';
+                      const bulletBadges = getBulletBadges(origBullet, bullet, jdIntelligence);
+
                       return (
                         <div
                           key={bulletIdx}
-                          className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-zinc-105/60 dark:bg-zinc-955/40 rounded-xl border border-zinc-200 dark:border-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-800 transition-colors"
+                          className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-zinc-105/60 dark:bg-zinc-955/40 rounded-xl border border-zinc-200 dark:border-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-800 transition-colors animate-fadeIn"
                         >
-                          <div className="text-[10px] text-zinc-650 dark:text-zinc-450 italic leading-relaxed">
-                            <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-600 block mb-1">
+                          <div className="text-[10px] text-zinc-650 dark:text-zinc-455 italic leading-relaxed">
+                            <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-650 block mb-1">
                               Original Bullet
                             </span>
                             {origBullet || 'N/A'}
                           </div>
-                          <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-900 pt-2.5 md:pt-0 md:pl-4">
-                            <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500/80 block mb-1">
-                              Tailored Rewrite
-                            </span>
-                            {diffText(origBullet, bullet)}
+                          <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-900 pt-2.5 md:pt-0 md:pl-4 flex flex-col justify-between">
+                            <div>
+                              <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500/80 block mb-1">
+                                Tailored Rewrite
+                              </span>
+                              {diffText(origBullet, bullet)}
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {bulletBadges.includes('Action verb') && (
+                                <span className="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-455 border border-emerald-250 dark:border-emerald-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
+                                  ⚡ Action verb
+                                </span>
+                              )}
+                              {bulletBadges.includes('Quantified') && (
+                                <span className="bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-455 border border-blue-250 dark:border-blue-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
+                                  📊 Quantified
+                                </span>
+                              )}
+                              {bulletBadges.includes('JD keyword') && (
+                                <span className="bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-455 border border-indigo-250 dark:border-indigo-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
+                                  🎯 JD keyword
+                                </span>
+                              )}
+                              {bulletBadges.includes('Impact') && (
+                                <span className="bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-455 border border-amber-250 dark:border-amber-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
+                                  ✨ Impact focused
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -925,6 +1023,135 @@ export const Analyze: React.FC = () => {
             size={90}
           />
         </div>
+
+        {/* Score Breakdown Bars */}
+        {atsBreakdown ? (
+          <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-900">
+            <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
+              ATS Metric Breakdown
+            </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Keyword Match */}
+              <div className="space-y-1 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-sm border border-zinc-100 dark:border-zinc-900/50 p-3 rounded-lg">
+                <div className="flex justify-between text-[11px] font-semibold">
+                  <span className="text-zinc-700 dark:text-zinc-300">Keyword Match</span>
+                  <span className="text-zinc-900 dark:text-white">{atsBreakdown.keywordMatch}%</span>
+                </div>
+                <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${atsBreakdown.keywordMatch}%` }}></div>
+                </div>
+              </div>
+
+              {/* Bullet Quality */}
+              <div className="space-y-1 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-sm border border-zinc-100 dark:border-zinc-900/50 p-3 rounded-lg">
+                <div className="flex justify-between text-[11px] font-semibold">
+                  <span className="text-zinc-700 dark:text-zinc-300">Bullet Quality</span>
+                  <span className="text-zinc-900 dark:text-white">{atsBreakdown.bulletQuality}%</span>
+                </div>
+                <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${atsBreakdown.bulletQuality}%` }}></div>
+                </div>
+              </div>
+
+              {/* Quantification */}
+              <div className="space-y-1 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-sm border border-zinc-100 dark:border-zinc-900/50 p-3 rounded-lg">
+                <div className="flex justify-between text-[11px] font-semibold">
+                  <span className="text-zinc-700 dark:text-zinc-300">Quantification (Metrics)</span>
+                  <span className="text-zinc-900 dark:text-white">{atsBreakdown.quantification}%</span>
+                </div>
+                <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-purple-500 rounded-full transition-all duration-500" style={{ width: `${atsBreakdown.quantification}%` }}></div>
+                </div>
+              </div>
+
+              {/* Sections Complete */}
+              <div className="space-y-1 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-sm border border-zinc-100 dark:border-zinc-900/50 p-3 rounded-lg">
+                <div className="flex justify-between text-[11px] font-semibold">
+                  <span className="text-zinc-700 dark:text-zinc-300">Sections Complete</span>
+                  <span className="text-zinc-900 dark:text-white">{atsBreakdown.sectionsComplete}%</span>
+                </div>
+                <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-teal-500 rounded-full transition-all duration-500" style={{ width: `${atsBreakdown.sectionsComplete}%` }}></div>
+                </div>
+              </div>
+
+              {/* Achievements Present */}
+              <div className="space-y-1 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-sm border border-zinc-100 dark:border-zinc-900/50 p-3 rounded-lg md:col-span-2">
+                <div className="flex justify-between text-[11px] font-semibold">
+                  <span className="text-zinc-700 dark:text-zinc-300">Achievements Section</span>
+                  <span className="text-zinc-900 dark:text-white">{atsBreakdown.achievementsPresent}%</span>
+                </div>
+                <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${atsBreakdown.achievementsPresent}%` }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          atsScore.breakdown && (
+            <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-900">
+              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
+                ATS Score Breakdown
+              </span>
+              <div className="space-y-3">
+                {/* Keyword Match */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-semibold">
+                    <span className="text-zinc-700 dark:text-zinc-300">Keyword Match (JD Skills)</span>
+                    <span className="text-zinc-900 dark:text-white">{atsScore.breakdown.keywordMatch} / 40</span>
+                  </div>
+                  <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(atsScore.breakdown.keywordMatch / 40) * 100}%` }}></div>
+                  </div>
+                </div>
+
+                {/* Bullet Quality */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-semibold">
+                    <span className="text-zinc-700 dark:text-zinc-300">Bullet Quality (Action Verbs)</span>
+                    <span className="text-zinc-900 dark:text-white">{atsScore.breakdown.bulletQuality} / 20</span>
+                  </div>
+                  <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(atsScore.breakdown.bulletQuality / 20) * 100}%` }}></div>
+                  </div>
+                </div>
+
+                {/* Quantification */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-semibold">
+                    <span className="text-zinc-700 dark:text-zinc-300">Quantification (Metrics & Impact)</span>
+                    <span className="text-zinc-900 dark:text-white">{atsScore.breakdown.quantification} / 20</span>
+                  </div>
+                  <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-purple-500 rounded-full" style={{ width: `${(atsScore.breakdown.quantification / 20) * 100}%` }}></div>
+                  </div>
+                </div>
+
+                {/* Sections Complete */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-semibold">
+                    <span className="text-zinc-700 dark:text-zinc-300">Sections Complete</span>
+                    <span className="text-zinc-900 dark:text-white">{atsScore.breakdown.sectionsComplete} / 10</span>
+                  </div>
+                  <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-teal-500 rounded-full" style={{ width: `${(atsScore.breakdown.sectionsComplete / 10) * 100}%` }}></div>
+                  </div>
+                </div>
+
+                {/* Achievements Present */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-semibold">
+                    <span className="text-zinc-700 dark:text-zinc-300">Achievements Section</span>
+                    <span className="text-zinc-900 dark:text-white">{atsScore.breakdown.achievementsPresent} / 10</span>
+                  </div>
+                  <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(atsScore.breakdown.achievementsPresent / 10) * 100}%` }}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        )}
 
         {/* Missing keyword badges */}
         <div className="space-y-3">
@@ -1095,10 +1322,19 @@ export const Analyze: React.FC = () => {
         {/* CONFIG/INPUTS COLUMN */}
         {showConfig && (
           <div className="lg:col-span-5 space-y-6">
+            <div className="px-1">
+              <h1 className="font-heading text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                Analyze Job Description
+              </h1>
+              <p className="font-body text-sm text-zinc-500 dark:text-white/50 mt-1">
+                Paste a JD or LinkedIn URL — our AI picks your best projects and tailors your resume.
+              </p>
+            </div>
+            
             <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-2xl p-6 space-y-4 transition-colors">
               {/* Job Board URL Scraper */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-505 dark:text-zinc-400 uppercase tracking-wider block">
+                <label className="font-body text-[10px] font-bold uppercase tracking-[1.5px] text-zinc-500 dark:text-white/40 block">
                   📋 Paste Job URL (LinkedIn / Indeed / Any)
                 </label>
                 <div className="flex gap-2">
@@ -1139,7 +1375,7 @@ export const Analyze: React.FC = () => {
               {/* Job Metadata details */}
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-zinc-550 dark:text-zinc-450 uppercase tracking-wider">
+                  <label className="font-body text-[10px] font-bold uppercase tracking-[1.5px] text-zinc-500 dark:text-white/40 block">
                     Job Title
                   </label>
                   <input
@@ -1152,7 +1388,7 @@ export const Analyze: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-zinc-550 dark:text-zinc-450 uppercase tracking-wider">
+                  <label className="font-body text-[10px] font-bold uppercase tracking-[1.5px] text-zinc-500 dark:text-white/40 block">
                     Company Name
                   </label>
                   <input
@@ -1169,12 +1405,12 @@ export const Analyze: React.FC = () => {
               {/* Divider */}
               <div className="flex items-center py-2">
                 <div className="flex-1 border-t border-zinc-200 dark:border-zinc-800"></div>
-                <span className="px-3 text-[10px] uppercase font-bold text-zinc-450 dark:text-zinc-550 tracking-wider">Or paste manually</span>
+                <span className="px-3 font-body text-[10px] font-bold uppercase tracking-[1.5px] text-zinc-450 dark:text-white/40">Or paste manually</span>
                 <div className="flex-1 border-t border-zinc-200 dark:border-zinc-800"></div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-505 dark:text-zinc-400 uppercase tracking-wider">
+                <label className="font-body text-[10px] font-bold uppercase tracking-[1.5px] text-zinc-500 dark:text-white/40 block">
                   Job Description Text
                 </label>
                 <textarea
@@ -1338,6 +1574,21 @@ export const Analyze: React.FC = () => {
           {/* RESULTS STATE */}
           {tailoredResume && agentStatus === 'done' && (
             <div className="space-y-6">
+              {qualityIssues.length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-250 dark:border-amber-900/30 rounded-2xl p-4 flex flex-col gap-2 animate-fadeIn">
+                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400 font-bold text-[11px]">
+                    <span>⚠️</span> {qualityIssues.length} quality issues found — consider reviewing before downloading
+                  </div>
+                  <ul className="list-disc pl-5 space-y-1 text-zinc-500 dark:text-zinc-400 text-[10.5px] leading-relaxed">
+                    {qualityIssues.slice(0, 3).map((issue, idx) => (
+                      <li key={idx}>{issue}</li>
+                    ))}
+                    {qualityIssues.length > 3 && (
+                      <li>... and {qualityIssues.length - 3} more issues</li>
+                    )}
+                  </ul>
+                </div>
+              )}
               {showConfig ? (
                 /* TABBED VIEW (Used when inputs config is visible) */
                 <div className="space-y-6 animate-fadeIn">

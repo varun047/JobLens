@@ -79,7 +79,8 @@ function selectKeyFiles(treeNodes: any[]): string[] {
 }
 
 async function callOllamaAPI(prompt: string): Promise<any> {
-  const response = await fetch('http://localhost:11434/api/chat', {
+  const ollamaUrl = (import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434').replace(/\/+$/, '');
+  const response = await fetch(`${ollamaUrl}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -461,7 +462,8 @@ Write these sections:
 
 Make it professional and accurate. Return ONLY raw markdown.`;
 
-      const response = await fetch('http://localhost:11434/api/chat', {
+      const ollamaUrl = (import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434').replace(/\/+$/, '');
+      const response = await fetch(`${ollamaUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -182,13 +182,23 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
+      {/* Welcome back heading */}
+      <div className="mb-8 border-b border-zinc-200 dark:border-zinc-800 pb-6">
+        <h1 className="font-heading text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
+          Welcome back, {user?.name ? user.name.split(' ')[0] : 'Developer'}
+        </h1>
+        <p className="font-body text-sm text-zinc-500 dark:text-white/50 mt-1">
+          {repos.length} repositories analyzed · Last updated today
+        </p>
+      </div>
+
       {/* Top Banner / Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight">
+          <h2 className="font-heading text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
             GitHub Repositories
-          </h1>
-          <p className="text-zinc-500 text-xs mt-0.5">
+          </h2>
+          <p className="font-body text-sm text-zinc-650 dark:text-white/70 mt-1">
             Select projects to include in your resume modifications during tailored exports.
           </p>
         </div>

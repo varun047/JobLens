@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ParsedResume, GitHubRepo, RankedProject, CareerAdvice } from '../types';
+import type { ParsedResume, GitHubRepo, RankedProject, CareerAdvice, JDIntelligence, ATSBreakdown } from '../types';
 import { useRepoStore } from './repoStore';
 import { extractJSON } from '../lib/extractJSON';
+import { validateResume, type ValidationWarning, computeATSBreakdown } from '../lib/validateResume';
 
 interface AgentState {
   jdText: string;
@@ -11,10 +12,23 @@ interface AgentState {
   selectedJobTitle: string;
   rankedProjects: RankedProject[];
   tailoredResume: ParsedResume | null;
-  atsScore: { before: number; after: number } | null;
+  atsScore: {
+    before: number;
+    after: number;
+    breakdown?: {
+      keywordMatch: number;
+      bulletQuality: number;
+      quantification: number;
+      sectionsComplete: number;
+      achievementsPresent: number;
+    };
+  } | null;
   missingKeywords: string[];
   careerAdvice: CareerAdvice | null;
-  agentStatus: 'idle' | 'reading' | 'step1' | 'step1_done' | 'step2a' | 'step2a_done' | 'step2b' | 'step2b_done' | 'step3' | 'step3_done' | 'done' | 'error';
+  jdIntelligence: JDIntelligence | null;
+  validationWarnings: ValidationWarning[];
+  atsBreakdown: ATSBreakdown | null;
+  agentStatus: 'idle' | 'jd_intel' | 'jd_intel_done' | 'extracting' | 'step1' | 'step1_done' | 'step2a' | 'step2a_done' | 'step2b' | 'step2b_done' | 'step2c' | 'step2c_done' | 'step2d' | 'step2d_done' | 'step2_done' | 'step3' | 'step3_done' | 'done' | 'error';
   statusMessage: string;
   error: string | null;
 
@@ -24,8 +38,23 @@ interface AgentState {
   setSelectedJobTitle: (title: string) => void;
 
   setStep1Result: (projects: RankedProject[]) => void;
-  setStep2Result: (resume: ParsedResume, ats: { before: number; after: number }, keywords: string[]) => void;
+  setStep2Result: (
+    resume: ParsedResume,
+    ats: {
+      before: number;
+      after: number;
+      breakdown?: {
+        keywordMatch: number;
+        bulletQuality: number;
+        quantification: number;
+        sectionsComplete: number;
+        achievementsPresent: number;
+      };
+    },
+    keywords: string[]
+  ) => void;
   setStep3Result: (advice: CareerAdvice) => void;
+  setJDIntelligence: (intel: JDIntelligence | null) => void;
 
   setAgentStatus: (status: AgentState['agentStatus'], message?: string) => void;
   setError: (error: string | null) => void;
@@ -46,7 +75,8 @@ async function callOllamaAPI(prompt: string, timeoutMs: number = 180000, customO
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch('http://localhost:11434/api/chat', {
+    const ollamaUrl = (import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434').replace(/\/+$/, '');
+    const response = await fetch(`${ollamaUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -87,52 +117,29 @@ async function callOllamaAPI(prompt: string, timeoutMs: number = 180000, customO
   }
 }
 
-async function callOllamaAPIRaw(prompt: string, timeoutMs: number = 180000, customOptions?: any): Promise<{ parsed: any; rawText: string }> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const response = await fetch('http://localhost:11434/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama3.2',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a JSON API. You only output valid JSON objects. Never output text, explanations, or markdown. Always start with { and end with }.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        stream: false,
-        options: {
-          num_predict: 2000,
-          temperature: 0,
-          ...customOptions
-        }
-      }),
-      signal: controller.signal
-    });
 
-    clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Ollama API error: ${response.status} - ${errText}`);
-    }
+async function extractJDIntelligence(jdText: string): Promise<JDIntelligence> {
+  const prompt = `You are a recruitment expert. Analyze this job description and extract key intelligence.
 
-    const data = await response.json();
-    const textContent = data.message.content;
-    return { parsed: extractJSON(textContent), rawText: textContent };
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error('Ollama request timed out. Please check if Ollama is running properly on your machine.');
-    }
-    throw error;
-  }
+Return ONLY raw JSON matching this schema:
+{
+  "requiredSkills": ["string"],
+  "preferredSkills": ["string"],
+  "seniority": "fresher" | "junior" | "mid" | "senior",
+  "companyType": "startup" | "enterprise" | "product" | "service" | "unknown",
+  "keyActionWords": ["string"],
+  "dailyResponsibilities": ["string"]
 }
 
+Job Description:
+${jdText}
+
+Start your response with { and end with }. Nothing else.`;
+
+  return callOllamaAPI(prompt);
+}
 
 export const useAgentStore = create<AgentState>()(
   persist(
@@ -146,6 +153,9 @@ export const useAgentStore = create<AgentState>()(
       atsScore: null,
       missingKeywords: [],
       careerAdvice: null,
+      jdIntelligence: null,
+      validationWarnings: [],
+      atsBreakdown: null,
       agentStatus: 'idle',
       statusMessage: '',
       error: null,
@@ -160,7 +170,7 @@ export const useAgentStore = create<AgentState>()(
         set({
           rankedProjects: projects,
           agentStatus: 'step1_done',
-          statusMessage: 'Found top 3 matching projects ✓'
+          statusMessage: 'Found top matching projects ✓'
         });
       },
 
@@ -169,8 +179,8 @@ export const useAgentStore = create<AgentState>()(
           tailoredResume: resume,
           atsScore: ats,
           missingKeywords: keywords,
-          agentStatus: 'step2b_done',
-          statusMessage: 'Resume tailored successfully ✓'
+          agentStatus: 'step2_done',
+          statusMessage: 'Resume tailored ✓'
         });
       },
 
@@ -178,9 +188,11 @@ export const useAgentStore = create<AgentState>()(
         set({
           careerAdvice: advice,
           agentStatus: 'step3_done',
-          statusMessage: 'Analysis complete ✓'
+          statusMessage: 'Career analysis complete ✓'
         });
       },
+
+      setJDIntelligence: (intel) => set({ jdIntelligence: intel }),
 
       setAgentStatus: (status, message = '') => {
         set({ agentStatus: status, statusMessage: message });
@@ -203,10 +215,14 @@ export const useAgentStore = create<AgentState>()(
         atsScore: null,
         missingKeywords: [],
         careerAdvice: null,
+        jdIntelligence: null,
+        validationWarnings: [],
+        atsBreakdown: null,
         agentStatus: 'idle',
         statusMessage: '',
         error: null
       }),
+
 
       runAgent: async (repos, baseResume, _jobTitle, _companyName, _userId, resumeFromStep) => {
         set({ error: null });
@@ -232,10 +248,19 @@ export const useAgentStore = create<AgentState>()(
         }
 
         try {
+          let jdIntelligence = get().jdIntelligence;
           let step1Result = { rankedProjects: get().rankedProjects };
 
+          // Step 0: Extract JD Intelligence
+          if (!resumeFromStep || resumeFromStep === 1 || !jdIntelligence) {
+            set({ agentStatus: 'jd_intel', statusMessage: 'Reading and understanding the job description...' });
+            jdIntelligence = await extractJDIntelligence(jdText);
+            set({ jdIntelligence, agentStatus: 'jd_intel_done', statusMessage: 'Job description understood ✓' });
+            console.log('JD Intelligence:', jdIntelligence);
+          }
+
           if (!resumeFromStep || resumeFromStep < 2) {
-            set({ error: null, agentStatus: 'step1', statusMessage: 'Analyzing your GitHub projects and codebase...' });
+            set({ agentStatus: 'step1', statusMessage: 'Analyzing your GitHub projects for best fit...' });
 
             const selectedAnalyses = repoAnalyses.filter((a) =>
               repos.some((r) => r.name === a.repo_name)
@@ -272,183 +297,253 @@ Return ONLY raw JSON:
               throw new Error('Project ranker response did not contain rankedProjects list.');
             }
             step1Result = apiResult;
-            set({ rankedProjects: step1Result.rankedProjects, agentStatus: 'step1_done', statusMessage: 'Found top 3 matching projects ✓' });
+            set({ rankedProjects: step1Result.rankedProjects, agentStatus: 'step1_done', statusMessage: 'Found top matching projects ✓' });
           }
 
-          // Transition to step 2 immediately
-          let step2Result = {
-            tailoredResume: get().tailoredResume,
-            atsScore: get().atsScore,
-            missingKeywords: get().missingKeywords
-          };
+          // Transition to step 2
+          let tailoredResume = get().tailoredResume;
+          let atsScore = get().atsScore;
+          let missingKeywords = get().missingKeywords;
 
           if (!resumeFromStep || resumeFromStep < 3) {
-            // Extract keywords from Job Description
-            const jdKeywords = jdText
-              .match(/\b[A-Z][a-z]+(?:\s[A-Z][a-z]+)*|\b[A-Z]{2,}\b/g)
-              ?.slice(0, 20)
-              ?.join(', ') || jdText.slice(0, 200);
+            const currentStatus = get().agentStatus;
 
-            // Trim inputs aggressively
-            const trimmedExperience = baseResume.experience.map(exp => ({
-              company: exp.company,
-              role: exp.role,
-              duration: exp.duration,
-              bullets: exp.bullets.slice(0, 3)
-            }));
+            // Initialize results from tailoredResume for intermediate recovery
+            let summaryResult = tailoredResume?.summary || '';
+            let experienceResult = tailoredResume?.experience || [];
+            let projectsResult = tailoredResume?.projects || [];
+            let skillCategoriesResult = tailoredResume?.skillCategories || [];
+            let skillsResult = tailoredResume?.skills || [];
 
-            const trimmedProjects = baseResume.projects.slice(0, 4).map(proj => ({
-              name: proj.name,
-              tech: proj.tech.slice(0, 5),
-              link: proj.link || '',
-              bullets: proj.bullets.slice(0, 2)
-            }));
+            // Step 2A: Rewrite Professional Summary
+            const shouldRun2A = !['step2a_done', 'step2b', 'step2b_done', 'step2c', 'step2c_done', 'step2d', 'step2d_done', 'step2_done'].includes(currentStatus) || !summaryResult;
+            if (shouldRun2A) {
+              set({ agentStatus: 'step2a', statusMessage: 'Writing your professional summary...' });
+              const summaryPrompt = `You are an expert resume writer.
 
-            // Before Step 2A call
-            console.log('Base resume being sent:', {
-              experienceCount: trimmedExperience.length,
-              projectCount: trimmedProjects.length,
-              skillCount: baseResume.skills.length
-            });
+Write a 3-line professional summary for this candidate tailored to the job description.
 
-            // Call 2A — Rewrite Experience + Skills only
-            set({ agentStatus: 'step2a', statusMessage: 'Rewriting experience and skills...' });
+Rules:
+- Line 1: Who they are + years of experience + key identity
+- Line 2: Top 2-3 technical strengths most relevant to JD
+- Line 3: What they bring to this specific role/company
 
-            const prompt2A = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks, no 'Here are' or any text before or after. Start your response with { and end with }. Nothing else.
+Candidate profile:
+Name: ${baseResume.name}
+Current role/status: ${baseResume.experience[0]?.role || 'Student'} at ${baseResume.experience[0]?.company || baseResume.education[0]?.institution}
+Education: ${baseResume.education[0]?.degree} from ${baseResume.education[0]?.institution}
+Top skills: ${baseResume.skills.slice(0, 8).join(', ')}
+Key experience highlights: ${baseResume.experience.map(e => e.role + ' at ' + e.company).join('; ')}
+Key project highlights: ${baseResume.projects.map(p => p.name).join(', ')}
 
-Rewrite ONLY the experience bullets and skills for this resume.
-Keep bullets 15-20 words each. Minimum 2 bullets per job.
-Inject these JD keywords naturally: ${jdKeywords}
+Target Seniority Level: ${jdIntelligence?.seniority || 'mid'}
+Target Company Type: ${jdIntelligence?.companyType || 'unknown'}
+Required skills from JD: ${jdIntelligence?.requiredSkills?.join(', ') || ''}
+
+Return ONLY raw JSON matching this schema:
+{ "summary": "Line 1 text. Line 2 text. Line 3 text." }
+
+Keep it under 60 words total. Do NOT use first person (no "I" or "My"). Use third person.`;
+
+              const result2A = await callOllamaAPI(summaryPrompt);
+              if (!result2A.summary) {
+                throw new Error('Professional summary rewriting failed.');
+              }
+              summaryResult = result2A.summary;
+              set({ agentStatus: 'step2a_done', tailoredResume: { ...(tailoredResume || baseResume), summary: summaryResult } });
+            }
+
+            // Step 2B: Rewrite Experience Bullets & Calculate ATS Score
+            const shouldRun2B = !['step2b_done', 'step2c', 'step2c_done', 'step2d', 'step2d_done', 'step2_done'].includes(currentStatus) || experienceResult.length === 0;
+            if (shouldRun2B) {
+              set({ agentStatus: 'step2b', statusMessage: 'Rewriting experience with impact metrics...' });
+              const experiencePrompt = `You are an expert resume writer.
+
+Rewrite the candidate's professional experience bullets to align with the job description.
+
+RULES FOR BULLET POINTS:
+1. Start with strong action verbs (e.g., Developed, Designed, Optimizing, Architected, Automated, Led).
+2. EXPLICITLY BANNED WORDS: Worked, Helped, Assisted, Responsible for, Participated. Do NOT use these.
+3. Use the XYZ formula: "Accomplished X by doing Y resulting in Z".
+4. Be 15-20 words per bullet point.
+5. Include a real metric where plausible (e.g., time saved, users served, % improvement, lines of code, components built). If exact metrics are unknown, use reasonable estimates.
+6. Naturally include 1-2 of these required skills where truthful: ${jdIntelligence?.requiredSkills?.slice(0, 6)?.join(', ') || ''}
+
+RULES FOR ATS SCORE CALCULATION:
+Calculate actual ATS score based on:
+- Keyword match: what % of JD required skills appear in resume (max 40 pts)
+- Bullet quality: do bullets start with action verbs (max 20 pts)
+- Quantification: how many bullets have numbers/metrics (max 20 pts)
+- Sections complete: summary + skills + exp + projects + education (max 10 pts)
+- Achievements present: (max 10 pts)
 
 Experience to rewrite:
-${JSON.stringify(trimmedExperience)}
+${JSON.stringify(baseResume.experience.map(exp => ({
+  company: exp.company,
+  role: exp.role,
+  duration: exp.duration,
+  originalBullets: exp.bullets
+})))}
 
-Current skills: ${baseResume.skills.join(', ')}
-
-IMPORTANT SKILLS TAILORING DIRECTIONS:
-1. Reorder the skills: Place the technical/hard skills that directly match or support the Job Description at the beginning of the "skills" array. Move less relevant or general tools to the end of the array. Do NOT output them in the same original order.
-2. Inject soft skills: Scan the Job Description for crucial soft skills (e.g., Communication, Project Management, Collaboration, Mentoring, Agile, Leadership, Problem Solving) and inject the top 4-5 relevant soft skills directly into the "skills" array.
-3. Add missing technical keywords: If the Job Description requires relevant technical skills that are missing from "Current skills" but are supported by the experience bullets, add them to the "skills" array.
-Ensure the outputted "skills" array is a refined, distinct, and comprehensive list of both hard and soft skills.
-
-atsScore.before and atsScore.after must be whole numbers between 0 and 100, NOT decimals.
-
-Return ONLY raw JSON:
+Return ONLY raw JSON matching this schema:
 {
-  "skills": ["string"],
   "experience": [{
     "company": "string",
     "role": "string",
     "duration": "string",
-    "bullets": ["string"]
+    "bullets": ["string"] // 3-4 bullets per experience
   }],
-  "atsScore": { "before": number, "after": number },
+  "atsScore": {
+    "before": number, // whole number 0-100, based on original resume
+    "after": number,  // whole number 0-100, based on tailored resume
+    "breakdown": {
+      "keywordMatch": number, // points awarded out of 40
+      "bulletQuality": number, // points awarded out of 20
+      "quantification": number, // points awarded out of 20
+      "sectionsComplete": number, // points awarded out of 10
+      "achievementsPresent": number // points awarded out of 10
+    }
+  },
   "missingKeywords": ["string"]
 }`;
 
-            const response2A = await callOllamaAPIRaw(prompt2A, 180000, { num_predict: 3000, temperature: 0 });
-            const rawText = response2A.rawText;
-            const result2A = response2A.parsed;
-
-            // After Step 2A call
-            console.log('Step 2A raw response:', rawText.slice(0, 200));
-            console.log('Step 2A parsed:', result2A);
-
-            const atsScoreResult = result2A?.atsScore || result2A?.ats_score;
-            if (!result2A.experience || !result2A.skills || !atsScoreResult) {
-              throw new Error('Call 2A (Experience & Skills) response was missing required fields.');
+              const result2B = await callOllamaAPI(experiencePrompt);
+              if (!result2B.experience || !result2B.atsScore) {
+                throw new Error('Experience rewriting and ATS scoring failed.');
+              }
+              experienceResult = result2B.experience;
+              atsScore = result2B.atsScore;
+              missingKeywords = result2B.missingKeywords || [];
+              set({ 
+                atsScore, 
+                missingKeywords, 
+                agentStatus: 'step2b_done', 
+                tailoredResume: { ...(tailoredResume || baseResume), experience: experienceResult } 
+              });
             }
 
-            set({ agentStatus: 'step2a_done', statusMessage: 'Experience and skills rewritten ✓' });
+            // Step 2C: Rewrite Project Bullets
+            const shouldRun2C = !['step2c_done', 'step2d', 'step2d_done', 'step2_done'].includes(currentStatus) || projectsResult.length === 0;
+            if (shouldRun2C) {
+              set({ agentStatus: 'step2c', statusMessage: 'Tailoring project descriptions...' });
+              const projectPrompt = `You are an expert resume writer.
 
-            // Call 2B — Rewrite Projects only
-            set({ agentStatus: 'step2b', statusMessage: 'Rewriting projects...' });
+Rewrite the candidate's project descriptions to align with the job description.
 
-            const prompt2B = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks, no 'Here are' or any text before or after. Start your response with { and end with }. Nothing else.
+RULES FOR PROJECT BULLETS:
+1. Lead with the technical achievement, not the description.
+2. Start with strong action verbs (e.g., Built, Developed, Designed, Optimized).
+3. EXPLICITLY BANNED WORDS: Worked, Helped, Assisted, Responsible for, Participated. Do NOT use these.
+4. Use the XYZ formula: "Accomplished X by doing Y resulting in Z".
+5. Be 15-20 words per bullet point.
+6. Include a real metric where plausible (e.g., handling X requests, processing Y records, reducing Z time, supporting N users, across P components).
+7. Naturally include 1-2 of these required skills where truthful: ${jdIntelligence?.requiredSkills?.slice(0, 4)?.join(', ') || ''}
 
-Rewrite ONLY the project bullets for this resume.
-Keep bullets 15-20 words each. Minimum 2 bullets per project.
-Inject these JD keywords naturally: ${jdKeywords}
+Chosen projects (already ranked by relevance):
+${JSON.stringify(step1Result.rankedProjects.map(rp => {
+  const proj = baseResume.projects.find(p => 
+    p.name.toLowerCase().includes(rp.name.toLowerCase()) ||
+    rp.name.toLowerCase().includes(p.name.toLowerCase())
+  );
+  return proj || { name: rp.name, tech: [], bullets: [] };
+}))}
 
-Projects to rewrite:
-${JSON.stringify(trimmedProjects)}
-
-Return ONLY raw JSON:
+Return ONLY raw JSON matching this schema:
 {
   "projects": [{
     "name": "string",
     "tech": ["string"],
-    "link": "string",
-    "bullets": ["string"]
+    "bullets": ["string"] // 2-3 bullets with metrics
   }]
 }`;
 
-            const result2B = await callOllamaAPI(prompt2B, 180000, { num_predict: 2000, temperature: 0 });
-            
-            // After Step 2B call  
-            console.log('Step 2B parsed:', result2B);
-
-            if (!result2B.projects) {
-              throw new Error('Call 2B (Projects) response was missing required fields.');
+              const result2C = await callOllamaAPI(projectPrompt);
+              if (!result2C.projects) {
+                throw new Error('Projects rewriting failed.');
+              }
+              projectsResult = result2C.projects;
+              set({ agentStatus: 'step2c_done', tailoredResume: { ...(tailoredResume || baseResume), projects: projectsResult } });
             }
 
-            set({ agentStatus: 'step2b_done', statusMessage: 'Projects rewritten ✓' });
+            // Step 2D: Rewrite Skills Section
+            const shouldRun2D = !['step2d_done', 'step2_done'].includes(currentStatus) || skillsResult.length === 0;
+            if (shouldRun2D) {
+              set({ agentStatus: 'step2d', statusMessage: 'Optimizing skills for ATS...' });
+              const skillsPrompt = `You are an expert resume writer.
 
-            // Merge results into tailoredResume
-            const tailoredResume: ParsedResume = {
+Reorder and categorize skills for maximum JD relevance.
+
+RULES FOR SKILLS CATEGORIZATION:
+1. Group into exactly these categories:
+   - Frontend
+   - Backend
+   - Tools
+   - Languages
+   - Other
+2. Put JD-required skills first within each category.
+3. Add any missing technical skills from the JD's required list IF and only if it is plausibly supported by the candidate's experience or projects (do NOT fabricate skills with zero support).
+
+Current skills: ${baseResume.skills.join(', ')}
+JD required skills: ${jdIntelligence?.requiredSkills?.join(', ') || ''}
+JD preferred skills: ${jdIntelligence?.preferredSkills?.join(', ') || ''}
+
+Return ONLY raw JSON matching this schema:
+{
+  "skillCategories": [
+    { "category": "Frontend" | "Backend" | "Tools" | "Languages" | "Other", "skills": ["string"] }
+  ],
+  "skills": ["string"] // flattened array of all skills in order for backward compatibility
+}`;
+
+              const result2D = await callOllamaAPI(skillsPrompt);
+              if (!result2D.skills) {
+                throw new Error('Skills reordering failed.');
+              }
+              skillCategoriesResult = result2D.skillCategories || [];
+              skillsResult = result2D.skills;
+              set({ agentStatus: 'step2d_done' });
+            }
+
+            // Merge all results
+            tailoredResume = {
               name: baseResume.name,
               email: baseResume.email,
               phone: baseResume.phone,
               linkedin: baseResume.linkedin || '',
               github: baseResume.github || '',
-              // USE AI RESULTS — not base resume
-              skills: result2A?.skills?.length > 0 
-                ? result2A.skills 
-                : baseResume.skills,
-              experience: result2A?.experience?.length > 0 
-                ? result2A.experience 
-                : baseResume.experience,
-              projects: result2B?.projects?.length > 0 
-                ? result2B.projects 
-                : baseResume.projects,
+              portfolio: baseResume.portfolio || '',
+              summary: summaryResult || baseResume.summary || '',
+              skills: skillsResult && skillsResult.length > 0 ? skillsResult : baseResume.skills,
+              skillCategories: skillCategoriesResult && skillCategoriesResult.length > 0 ? skillCategoriesResult : baseResume.skillCategories || [],
+              experience: experienceResult && experienceResult.length > 0 ? experienceResult : baseResume.experience,
+              projects: projectsResult && projectsResult.length > 0 ? projectsResult : baseResume.projects,
               education: baseResume.education,
-              achievements: baseResume.achievements || []
+              achievements: baseResume.achievements || [],
+              positions: baseResume.positions || [],
+              certifications: baseResume.certifications || [],
+              rawText: baseResume.rawText || ''
             };
 
-            // Final merged resume
-            console.log('Final tailored resume:', tailoredResume);
-
-            // Extract atsScore safely
-            const atsScore = {
-              before: result2A?.atsScore?.before || result2A?.ats_score?.before || 0,
-              after: result2A?.atsScore?.after || result2A?.ats_score?.after || 0
-            };
-
-            step2Result = {
-              tailoredResume,
-              atsScore,
-              missingKeywords: result2A.missingKeywords || result2A.missing_keywords || []
-            };
-
+            const validationWarnings = validateResume(tailoredResume);
+            const atsBreakdown = jdIntelligence ? computeATSBreakdown(tailoredResume, jdIntelligence, validationWarnings) : null;
             set({
-              tailoredResume: step2Result.tailoredResume,
-              atsScore: step2Result.atsScore,
-              missingKeywords: step2Result.missingKeywords,
-              agentStatus: 'step2b_done',
-              statusMessage: 'Resume tailored successfully ✓'
-
+              tailoredResume,
+              atsScore: atsScore || { before: 0, after: 0 },
+              missingKeywords: missingKeywords || [],
+              validationWarnings,
+              atsBreakdown,
+              agentStatus: 'step2_done',
+              statusMessage: 'Resume tailored ✓'
             });
           }
 
-          // Transition to step 3 immediately
+          // Step 3: Career advice
           set({ agentStatus: 'step3', statusMessage: 'Generating personalized career advice...' });
-
-          // Step 3: Career Coach
           const step3Prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks, no 'Here are' or any text before or after. Start your response with { and end with }. Nothing else.
 
 Candidate profile: ${JSON.stringify(baseResume)}
 Target role JD: ${jdText}
-Tailored resume: ${JSON.stringify(step2Result.tailoredResume)}
+Tailored resume: ${JSON.stringify(tailoredResume)}
 
 Give honest, specific career advice for this exact role.
 Return ONLY raw JSON matching this schema:
@@ -470,11 +565,11 @@ Return ONLY raw JSON matching this schema:
           set({
             careerAdvice,
             agentStatus: 'step3_done',
-            statusMessage: 'Analysis complete ✓'
+            statusMessage: 'Career analysis complete ✓'
           });
 
-          // Done
           set({ agentStatus: 'done', statusMessage: '✓ Analysis complete — scroll down to see results' });
+
         } catch (err: any) {
           console.error(err);
           set({
@@ -496,6 +591,9 @@ Return ONLY raw JSON matching this schema:
         atsScore: state.atsScore,
         missingKeywords: state.missingKeywords,
         careerAdvice: state.careerAdvice,
+        jdIntelligence: state.jdIntelligence,
+        validationWarnings: state.validationWarnings,
+        atsBreakdown: state.atsBreakdown,
         agentStatus: state.agentStatus,
         statusMessage: state.statusMessage,
         error: state.error,
