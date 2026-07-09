@@ -9,6 +9,7 @@ export interface AuthUser {
 export interface Experience {
   company: string;
   role: string;
+  location?: string;
   duration: string;
   bullets: string[];
 }
@@ -18,12 +19,33 @@ export interface Project {
   tech: string[];
   bullets: string[];
   link?: string;
+  liveDemo?: string;
 }
 
 export interface Education {
   institution: string;
   degree: string;
   year: string;
+  grade?: string;      // CGPA, percentage
+  coursework?: string[]; // relevant coursework
+}
+
+export interface SkillCategory {
+  category: 'Frontend' | 'Backend' | 'Tools' | 'Languages' | 'Other';
+  skills: string[];
+}
+
+export interface Position {
+  title: string;
+  organization: string;
+  duration: string;
+  description: string;
+}
+
+export interface Certification {
+  name: string;
+  issuer: string;
+  year?: string;
 }
 
 export interface ParsedResume {
@@ -32,11 +54,16 @@ export interface ParsedResume {
   phone: string;
   linkedin?: string;
   github?: string;
-  skills: string[];
+  portfolio?: string;
+  summary?: string;
+  skills: string[];              // keep for backward compat with old data
+  skillCategories?: SkillCategory[];
   experience: Experience[];
   projects: Project[];
   education: Education[];
   achievements?: string[];
+  positions?: Position[];
+  certifications?: Certification[];
   rawText?: string;
 }
 
@@ -93,3 +120,21 @@ export interface HistoryAnalysis {
   career_advice: CareerAdvice;
   created_at: string;
 }
+
+export interface JDIntelligence {
+  requiredSkills: string[];
+  preferredSkills: string[];
+  seniority: 'fresher' | 'junior' | 'mid' | 'senior';
+  companyType: 'startup' | 'enterprise' | 'product' | 'service' | 'unknown';
+  keyActionWords: string[];
+  dailyResponsibilities: string[];
+}
+
+export interface ATSBreakdown {
+  keywordMatch: number;      // 0-100
+  bulletQuality: number;     // 0-100
+  quantification: number;    // 0-100
+  sectionsComplete: number;  // 0-100
+  achievementsPresent: number; // 0-100
+}
+

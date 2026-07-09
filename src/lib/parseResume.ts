@@ -2,36 +2,60 @@ import type { ParsedResume } from '../types';
 import { extractJSON } from './extractJSON';
 
 export async function parseResume(text: string): Promise<ParsedResume> {
-  const prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks, no 'Here are' or any text before or after. Start your response with { and end with }. Nothing else.
+  const prompt = `Parse this resume completely. Extract EVERY piece of information.
 
-Schema:
+Return ONLY raw JSON matching this schema exactly:
 {
   "name": "string",
   "email": "string",
   "phone": "string",
-  "linkedin": "string or null",
-  "github": "string or null",
+  "linkedin": "string or ''",
+  "github": "string or ''",
+  "portfolio": "string or ''",
+  "summary": "string or ''",
   "skills": ["string"],
-  "experience": [{ "company": "string", "role": "string", "duration": "string", "bullets": ["string"] }],
-  "projects": [{ "name": "string", "tech": ["string"], "bullets": ["string"], "link": "string or null" }],
-  "education": [{ "institution": "string", "degree": "string", "year": "string" }],
-  "achievements": ["string"]
+  "skillCategories": [
+    { "category": "string", "skills": ["string"] }
+  ],
+  "experience": [{
+    "company": "string",
+    "role": "string",
+    "location": "string or ''",
+    "duration": "string",
+    "bullets": ["string"]
+  }],
+  "projects": [{
+    "name": "string",
+    "tech": ["string"],
+    "link": "string or ''",
+    "liveDemo": "string or ''",
+    "bullets": ["string"]
+  }],
+  "education": [{
+    "institution": "string",
+    "degree": "string",
+    "year": "string",
+    "grade": "string or ''",
+    "coursework": ["string"]
+  }],
+  "achievements": ["string"],
+  "positions": ["string"],
+  "certifications": ["string"]
 }
 
-Also extract:
-- linkedin: LinkedIn profile URL if present
-- github: GitHub profile URL if present  
-- achievements: array of achievement/responsibility strings
-  (look for sections like 'Achievements', 'Responsibilities', 
-   'Extra-Curricular', 'Positions of Responsibility')
-- For each project, extract 'link' if a URL is mentioned
+For skillCategories, group skills into logical categories:
+- Look for explicit category labels in resume (Programming:, Frontend:, Tools: etc)
+- If no categories exist, infer them from the skills list
 
-Return these in the JSON schema.
+For achievements vs positions:
+- achievements: awards, medals, competitions won
+- positions: leadership roles held (captain, head, treasurer etc)
 
 Resume text:
 ${text}`;
 
-  const response = await fetch('http://localhost:11434/api/chat', {
+  const ollamaUrl = (import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434').replace(/\/+$/, '');
+  const response = await fetch(`${ollamaUrl}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
