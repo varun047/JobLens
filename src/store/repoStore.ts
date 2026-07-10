@@ -354,15 +354,19 @@ Return this exact JSON:
 
           const result = await callOllamaAPI(prompt);
 
+          const complexityValue = ['beginner', 'intermediate', 'advanced'].includes(result.complexity)
+            ? result.complexity
+            : 'beginner';
+
           await supabase.from('repo_analyses').insert({
             user_id: userId,
             repo_name: repo.name,
             repo_url: repo.html_url,
             summary: result.summary || '',
-            tech_stack: result.techStack || [],
-            complexity: result.complexity || 'beginner',
-            domains: result.domains || [],
-            highlights: result.highlights || [],
+            tech_stack: Array.isArray(result.techStack) ? result.techStack : [],
+            complexity: complexityValue,
+            domains: Array.isArray(result.domains) ? result.domains : [],
+            highlights: Array.isArray(result.highlights) ? result.highlights : [],
             raw_files: repo.keyFiles || [],
             analyzed_at: new Date().toISOString(),
           });
@@ -371,10 +375,10 @@ Return this exact JSON:
             repo_name: repo.name,
             repo_url: repo.html_url,
             summary: result.summary || '',
-            techStack: result.techStack || [],
-            complexity: (result.complexity as any) || 'beginner',
-            domains: result.domains || [],
-            highlights: result.highlights || [],
+            techStack: Array.isArray(result.techStack) ? result.techStack : [],
+            complexity: complexityValue as any,
+            domains: Array.isArray(result.domains) ? result.domains : [],
+            highlights: Array.isArray(result.highlights) ? result.highlights : [],
             raw_files: repo.keyFiles || [],
             analyzed_at: new Date().toISOString(),
           });
@@ -573,15 +577,19 @@ Return this exact JSON:
 
       const result = await callOllamaAPI(prompt);
 
+      const complexityValue = ['beginner', 'intermediate', 'advanced'].includes(result.complexity)
+        ? result.complexity
+        : 'beginner';
+
       const dbRow = {
         user_id: userId,
         repo_name: repo.name,
         repo_url: repo.html_url,
         summary: result.summary || '',
-        tech_stack: result.techStack || [],
-        complexity: result.complexity || 'beginner',
-        domains: result.domains || [],
-        highlights: result.highlights || [],
+        tech_stack: Array.isArray(result.techStack) ? result.techStack : [],
+        complexity: complexityValue,
+        domains: Array.isArray(result.domains) ? result.domains : [],
+        highlights: Array.isArray(result.highlights) ? result.highlights : [],
         raw_files: repo.keyFiles || [],
         analyzed_at: new Date().toISOString(),
       };
@@ -598,10 +606,10 @@ Return this exact JSON:
         repo_name: repo.name,
         repo_url: repo.html_url,
         summary: result.summary || '',
-        techStack: result.techStack || [],
-        complexity: (result.complexity as any) || 'beginner',
-        domains: result.domains || [],
-        highlights: result.highlights || [],
+        techStack: Array.isArray(result.techStack) ? result.techStack : [],
+        complexity: complexityValue as any,
+        domains: Array.isArray(result.domains) ? result.domains : [],
+        highlights: Array.isArray(result.highlights) ? result.highlights : [],
         raw_files: repo.keyFiles || [],
         analyzed_at: new Date().toISOString(),
       };

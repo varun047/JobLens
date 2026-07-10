@@ -86,3 +86,81 @@ ${text}`;
   const textContent = data.message.content;
   return extractJSON(textContent) as ParsedResume;
 }
+
+export interface ExtractedInfo {
+  achievements: string[];
+  positions: {
+    title: string;
+    organization: string;
+    duration: string;
+    description: string;
+  }[];
+  certifications: {
+    name: string;
+    issuer: string;
+    year?: string;
+  }[];
+}
+
+export async function extractAchievementsAndPositions(text: string): Promise<ExtractedInfo> {
+  const prompt = `Parse this resume text and extract ONLY achievements, positions of responsibility, and certifications.
+  
+Return ONLY raw JSON matching this schema exactly:
+{
+  "achievements": ["string"],
+  "positions": [
+    {
+      "title": "string",
+      "organization": "string",
+      "duration": "string",
+      "description": "string"
+    }
+  ],
+  "certifications": [
+    {
+      "name": "string",
+      "issuer": "string",
+      "year": "string or ''"
+    }
+  ]
+}
+
+For achievements: awards, honors, medals, competitions won.
+For positions: leadership roles held, student society roles, community organizer roles.
+For certifications: professional courses, licenses, online certifications (e.g. AWS, Coursera).
+
+Resume text:
+${text}`;
+  
+  const ollamaUrl = (import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434').replace(/\/+$/, '');
+  const response = await fetch(`${ollamaUrl}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama3.2',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a JSON API. You only output valid JSON objects. Never output text, explanations, or markdown. Always start with { and end with }.'
+        },
+        { role: 'user', content: prompt }
+      ],
+      stream: false,
+      options: {
+        num_predict: 2000,
+        temperature: 0
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Ollama API request failed: ${response.status} - ${errorText}`
+    );
+  }
+
+  const data = await response.json();
+  const textContent = data.message.content;
+  return extractJSON(textContent) as ExtractedInfo;
+}
