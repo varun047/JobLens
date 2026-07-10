@@ -64,36 +64,7 @@ const diffText = (oldText: string, newText: string) => {
   });
 };
 
-function validateTailoredResume(resume: ParsedResume): string[] {
-  const issues: string[] = [];
-  
-  if (!resume.summary) issues.push('Missing professional summary');
-  
-  resume.experience?.forEach(exp => {
-    exp.bullets?.forEach(bullet => {
-      const weakVerbs = ['worked', 'assisted', 'helped', 'participated', 
-                         'observed', 'gained', 'was responsible'];
-      if (weakVerbs.some(v => bullet.toLowerCase().startsWith(v))) {
-        issues.push(`Weak bullet in ${exp.company}: "${bullet.slice(0,40)}..."`);
-      }
-      if (bullet.split(' ').length < 8) {
-        issues.push(`Too short bullet in ${exp.company}: "${bullet}"`);
-      }
-    });
-  });
-  
-  resume.projects?.forEach(proj => {
-    if (proj.bullets?.length < 2) {
-      issues.push(`${proj.name} needs more bullets`);
-    }
-  });
-  
-  if (resume.skills?.length < 8) {
-    issues.push('Skills section too sparse — add more');
-  }
-  
-  return issues;
-}
+
 
 const CircularProgress = ({
   score,
@@ -172,6 +143,7 @@ export const Analyze: React.FC = () => {
     missingKeywords,
     careerAdvice,
     jdIntelligence,
+    validationWarnings,
     agentStatus,
     statusMessage,
     error: agentError,
@@ -200,7 +172,7 @@ export const Analyze: React.FC = () => {
   );
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
-  const qualityIssues = tailoredResume ? validateTailoredResume(tailoredResume) : [];
+
 
   // Job Board URL Scraper & Metadata States
   const [extracting, setExtracting] = useState(false);
@@ -654,18 +626,33 @@ export const Analyze: React.FC = () => {
       </div>
     );
   };
+  
+  const getIssueReadableText = (issue: string) => {
+    switch (issue) {
+      case 'weak_verb':
+        return "Passive or weak action verb";
+      case 'too_short':
+        return "Bullet lacks enough detail";
+      case 'missing_metric':
+        return "No metric or number percentage";
+      case 'generic_language':
+        return "Contains generic buzzwords";
+      default:
+        return "Needs review";
+    }
+  };
 
   const renderResumePreview = () => {
     if (!tailoredResume) return null;
     return (
       <div className="space-y-6 animate-fadeIn">
         {/* Contact Info Header */}
-        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 flex items-center justify-between">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white leading-tight">
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-white leading-tight">
               {tailoredResume.name}
             </h3>
-            <p className="text-[11px] text-zinc-550 dark:text-zinc-400 mt-0.5">
+            <p className="text-[10.5px] text-zinc-500 mt-0.5">
               {tailoredResume.email} | {tailoredResume.phone}
             </p>
           </div>
@@ -676,16 +663,36 @@ export const Analyze: React.FC = () => {
                 `${tailoredResume.name}\n${tailoredResume.email} | ${tailoredResume.phone}`
               )
             }
-            className="text-[10px] text-zinc-655 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2.5 py-1.5 rounded-lg bg-zinc-105 dark:bg-zinc-955 transition-all cursor-pointer shadow-sm active:scale-95"
+            className="text-[10px] text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2.5 py-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-950 transition-all cursor-pointer shadow-sm active:scale-95"
           >
             {copiedSection === 'contact' ? 'Copied!' : 'Copy Info'}
           </button>
         </div>
 
+        {/* Professional Summary */}
+        {tailoredResume.summary && (
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-3">
+            <div className="flex justify-between items-center pb-2 border-b border-zinc-100 dark:border-zinc-800">
+              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-450 uppercase tracking-wider">
+                Professional Summary
+              </span>
+              <button
+                onClick={() => copySectionToClipboard('summary', tailoredResume.summary || '')}
+                className="text-[9px] text-zinc-500 hover:text-zinc-805 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-50 dark:bg-zinc-950 transition-colors shadow-sm active:scale-95"
+              >
+                {copiedSection === 'summary' ? 'Copied!' : 'Copy Summary'}
+              </button>
+            </div>
+            <p className="text-[11px] text-zinc-700 dark:text-zinc-300 leading-relaxed text-left">
+              {tailoredResume.summary}
+            </p>
+          </div>
+        )}
+
         {/* Skills Grid */}
-        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="flex justify-between items-center pb-2 border-b border-zinc-100 dark:border-zinc-800">
+            <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-455 uppercase tracking-wider">
               Reordered Skills Stack
             </span>
             <button
@@ -695,22 +702,22 @@ export const Analyze: React.FC = () => {
                   tailoredResume.skills.join(', ')
                 )
               }
-              className="text-[9px] text-zinc-655 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors shadow-sm active:scale-95"
+              className="text-[9px] text-zinc-555 hover:text-zinc-850 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-50 dark:bg-zinc-955 transition-colors shadow-sm active:scale-95"
             >
               {copiedSection === 'skills' ? 'Copied!' : 'Copy Skills'}
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
             {/* Left: Base Skills */}
-            <div className="space-y-1">
-              <span className="text-[9px] font-bold text-zinc-550 dark:text-zinc-650 uppercase">
+            <div className="space-y-2">
+              <span className="text-[9px] font-bold text-zinc-450 dark:text-zinc-550 uppercase tracking-wider">
                 Original Skills
               </span>
-              <div className="flex flex-wrap gap-1.5 pt-1">
+              <div className="flex flex-wrap gap-1.5">
                 {baseResume.skills.map((s, idx) => (
                   <span
                     key={idx}
-                    className="bg-zinc-100 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-900 text-zinc-600 dark:text-zinc-450 px-2 py-0.5 rounded text-[10px]"
+                    className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-150 dark:border-zinc-850 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded text-[10px]"
                   >
                     {s}
                   </span>
@@ -718,54 +725,84 @@ export const Analyze: React.FC = () => {
               </div>
             </div>
             {/* Right: Tailored Skills */}
-            <div className="space-y-1 border-l border-zinc-200 dark:border-zinc-900 pl-4">
-              <span className="text-[9px] font-bold text-zinc-550 dark:text-zinc-650 uppercase">
+            <div className="space-y-2 border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 pt-4 md:pt-0 md:pl-6">
+              <span className="text-[9px] font-bold text-zinc-455 dark:text-zinc-550 uppercase tracking-wider">
                 Tailored Reordering
               </span>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {tailoredResume.skills.map((s, idx) => {
-                  const isNew = !baseResume.skills.some(
-                    (bs) => bs.toLowerCase() === s.toLowerCase()
-                  );
-                  return (
-                    <span
-                      key={idx}
-                      className={`px-2 py-0.5 rounded text-[10px] border ${
-                        isNew
-                          ? 'bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30 font-semibold'
-                          : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-850 dark:text-zinc-200'
-                      }`}
-                    >
-                      {s}
-                    </span>
-                  );
-                })}
-              </div>
+              
+              {tailoredResume.skillCategories && tailoredResume.skillCategories.length > 0 ? (
+                <div className="space-y-3 pt-1">
+                  {tailoredResume.skillCategories.map((cat, idx) => (
+                    <div key={idx} className="space-y-1">
+                      <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">{cat.category}</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cat.skills.map((s, sIdx) => {
+                          const isRequired = jdIntelligence?.requiredSkills?.some(
+                            (rs) => rs.toLowerCase() === s.toLowerCase()
+                          );
+                          return (
+                            <span
+                              key={sIdx}
+                              className={`px-2 py-0.5 rounded text-[9.5px] border ${
+                                isRequired
+                                  ? 'bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 border-emerald-250 dark:border-emerald-900/30 font-semibold'
+                                  : 'bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-850 dark:text-zinc-205'
+                              }`}
+                            >
+                              {s}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {tailoredResume.skills.map((s, idx) => {
+                    const isRequired = jdIntelligence?.requiredSkills?.some(
+                      (rs) => rs.toLowerCase() === s.toLowerCase()
+                    );
+                    return (
+                      <span
+                        key={idx}
+                        className={`px-2 py-0.5 rounded text-[9.5px] border ${
+                          isRequired
+                            ? 'bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 border-emerald-250 dark:border-emerald-900/30 font-semibold'
+                            : 'bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-855 dark:text-zinc-205'
+                        }`}
+                      >
+                        {s}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Ranked projects chosen and why */}
-        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-4">
-          <span className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-wider block">
+        {/* Targeted Repositories Selected */}
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4 text-left">
+          <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-455 uppercase tracking-wider block">
             Targeted Repositories Selected
           </span>
           <div className="space-y-3">
             {rankedProjects.map((proj, idx) => (
               <div
                 key={idx}
-                className="p-3 bg-zinc-100 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-900 rounded-xl space-y-1.5"
+                className="p-3.5 bg-zinc-50 dark:bg-zinc-955 border border-zinc-155 dark:border-zinc-855 rounded-lg space-y-1.5"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zinc-900 dark:text-white">
+                  <span className="text-xs font-semibold text-zinc-905 dark:text-white">
                     {proj.name}
                   </span>
-                  <span className="bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/30 px-1.5 py-0.5 rounded-full text-[9px] font-bold">
+                  <span className="bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30 px-1.5 py-0.5 rounded-full text-[9.5px] font-bold">
                     Relevance: {proj.relevanceScore < 1 ? Math.round(proj.relevanceScore * 100) : Math.round(proj.relevanceScore)}%
                   </span>
                 </div>
-                <p className="text-[10px] text-zinc-600 dark:text-zinc-505 leading-relaxed">
-                  <span className="font-semibold text-zinc-700 dark:text-zinc-405">
+                <p className="text-[10px] text-zinc-550 dark:text-zinc-455 leading-relaxed">
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-350">
                     Recruiter Match Logic:
                   </span>{' '}
                   {proj.reason}
@@ -776,9 +813,9 @@ export const Analyze: React.FC = () => {
         </div>
 
         {/* Experience Comparison Diffs */}
-        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-6">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-zinc-505 dark:text-zinc-400 uppercase tracking-wider">
+        <div className="space-y-4 text-left">
+          <div className="flex justify-between items-center pb-1">
+            <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
               Work Experience Bullet Diffs
             </span>
             <button
@@ -788,26 +825,24 @@ export const Analyze: React.FC = () => {
                   formatExperienceAsText(tailoredResume.experience)
                 )
               }
-              className="text-[9px] text-zinc-650 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors shadow-sm active:scale-95"
+              className="text-[9px] text-zinc-500 hover:text-zinc-850 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-50 dark:bg-zinc-950 transition-colors shadow-sm active:scale-95"
             >
               {copiedSection === 'exp' ? 'Copied!' : 'Copy Experience'}
             </button>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {tailoredResume.experience.map((exp, idx) => {
               const originalExp = baseResume.experience[idx];
               return (
-                <div key={idx} className="space-y-3 border-t border-zinc-200 dark:border-zinc-900 pt-5 first:border-0 first:pt-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-xs font-bold text-zinc-900 dark:text-white">
-                        {exp.role} at {exp.company}
-                      </h4>
-                      <p className="text-[9px] text-zinc-500 dark:text-zinc-450">{exp.duration}</p>
-                    </div>
+                <div key={idx} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4 animate-fadeIn">
+                  <div>
+                    <h4 className="text-xs.5 font-bold text-zinc-900 dark:text-white leading-tight">
+                      {exp.role} at {exp.company}
+                    </h4>
+                    <p className="text-[9.5px] text-zinc-500 mt-0.5">{exp.duration}</p>
                   </div>
-                  <div className="space-y-2.5">
+                  <div className="space-y-3">
                     {exp.bullets.map((bullet, bulletIdx) => {
                       const origBullet = originalExp?.bullets?.[bulletIdx] || '';
                       const bulletBadges = getBulletBadges(origBullet, bullet, jdIntelligence);
@@ -815,15 +850,15 @@ export const Analyze: React.FC = () => {
                       return (
                         <div
                           key={bulletIdx}
-                          className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-zinc-100/60 dark:bg-zinc-955/40 rounded-xl border border-zinc-200 dark:border-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-800 transition-colors animate-fadeIn"
+                          className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3.5 bg-zinc-50 dark:bg-zinc-955 rounded-xl border border-zinc-150 dark:border-zinc-850 transition-colors hover:border-zinc-350 dark:hover:border-zinc-750"
                         >
-                          <div className="text-[10px] text-zinc-600 dark:text-zinc-455 italic leading-relaxed">
+                          <div className="text-[10px] text-zinc-505 dark:text-zinc-450 italic leading-relaxed">
                             <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-650 block mb-1">
                               Original Bullet
                             </span>
                             {origBullet || 'N/A'}
                           </div>
-                          <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-900 pt-2.5 md:pt-0 md:pl-4 flex flex-col justify-between">
+                          <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 pt-2.5 md:pt-0 md:pl-4 flex flex-col justify-between">
                             <div>
                               <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500/80 block mb-1">
                                 Tailored Rewrite
@@ -833,23 +868,37 @@ export const Analyze: React.FC = () => {
                             
                             <div className="flex flex-wrap gap-1.5 mt-2">
                               {bulletBadges.includes('Action verb') && (
-                                <span className="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-455 border border-emerald-250 dark:border-emerald-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
-                                  ⚡ Action verb
+                                <span className="bg-amber-50 dark:bg-amber-955/20 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30 px-2 py-0.5 rounded-full text-[9px] font-semibold flex items-center gap-1">
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                                  </svg>
+                                  Action Verb
                                 </span>
                               )}
                               {bulletBadges.includes('Quantified') && (
-                                <span className="bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-455 border border-blue-250 dark:border-blue-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
-                                  📊 Quantified
+                                <span className="bg-blue-50 dark:bg-blue-955/20 text-blue-600 dark:text-blue-450 border border-blue-200/50 dark:border-blue-900/30 px-2 py-0.5 rounded-full text-[9px] font-semibold flex items-center gap-1">
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v5.25c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 013 18.375v-5.25zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125v-9.75zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v14.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                                  </svg>
+                                  Quantified
                                 </span>
                               )}
                               {bulletBadges.includes('JD keyword') && (
-                                <span className="bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-455 border border-indigo-250 dark:border-indigo-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
-                                  🎯 JD keyword
+                                <span className="bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-405 border border-emerald-200/50 dark:border-emerald-900/30 px-2 py-0.5 rounded-full text-[9px] font-semibold flex items-center gap-1">
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1.5m0 15V21m-9-9h1.5m15 0H21m-9-9a9 9 0 100 18 9 9 0 000-18z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9a3 3 0 100 6 3 3 0 000-6z" />
+                                  </svg>
+                                  JD Keyword
                                 </span>
                               )}
                               {bulletBadges.includes('Impact') && (
-                                <span className="bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-455 border border-amber-250 dark:border-amber-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
-                                  ✨ Impact focused
+                                <span className="bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-405 border border-emerald-200/50 dark:border-emerald-900/30 px-2 py-0.5 rounded-full text-[9px] font-semibold flex items-center gap-1">
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l8.904-4.473L21 9l-3.482-3.482L9.813 15.904z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 21l3.5-3.5m0 0l-3.5-3.5m3.5 3.5H3" />
+                                  </svg>
+                                  Impact Focused
                                 </span>
                               )}
                             </div>
@@ -865,9 +914,9 @@ export const Analyze: React.FC = () => {
         </div>
 
         {/* Tailored Projects Section Diffs */}
-        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-6">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider">
+        <div className="space-y-4 text-left">
+          <div className="flex justify-between items-center pb-1">
+            <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
               Tailored Projects Bullet Diffs
             </span>
             <button
@@ -877,35 +926,35 @@ export const Analyze: React.FC = () => {
                   formatProjectsAsText(tailoredResume.projects)
                 )
               }
-              className="text-[9px] text-zinc-655 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors shadow-sm active:scale-95"
+              className="text-[9px] text-zinc-500 hover:text-zinc-850 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-50 dark:bg-zinc-955 transition-colors shadow-sm active:scale-95"
             >
               {copiedSection === 'projects' ? 'Copied!' : 'Copy Projects'}
             </button>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {tailoredResume.projects.map((proj, idx) => {
               const originalProj = baseResume.projects.find(
                 (p) => p.name.toLowerCase() === proj.name.toLowerCase()
               );
               return (
-                <div key={idx} className="space-y-3 border-t border-zinc-200 dark:border-zinc-900 pt-5 first:border-0 first:pt-0">
-                  <div>
-                    <h4 className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                <div key={idx} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4 animate-fadeIn">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h4 className="text-xs.5 font-bold text-zinc-900 dark:text-white leading-tight">
                       {proj.name}
-                      <span className="flex gap-1">
-                        {proj.tech.map((t, tIdx) => (
-                          <span
-                            key={tIdx}
-                            className="bg-zinc-100 dark:bg-zinc-900 text-zinc-650 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 px-1.5 py-0.5 rounded text-[8px]"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </span>
                     </h4>
+                    <div className="flex flex-wrap gap-1">
+                      {proj.tech.map((t, tIdx) => (
+                        <span
+                          key={tIdx}
+                          className="bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-405 border border-zinc-200 dark:border-zinc-800 px-1.5 py-0.5 rounded text-[8.5px]"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-2.5">
+                  <div className="space-y-3">
                     {proj.bullets.map((bullet, bulletIdx) => {
                       const origBullet = originalProj?.bullets?.[bulletIdx] || '';
                       const bulletBadges = getBulletBadges(origBullet, bullet, jdIntelligence);
@@ -913,15 +962,15 @@ export const Analyze: React.FC = () => {
                       return (
                         <div
                           key={bulletIdx}
-                          className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-zinc-105/60 dark:bg-zinc-955/40 rounded-xl border border-zinc-200 dark:border-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-800 transition-colors animate-fadeIn"
+                          className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3.5 bg-zinc-50 dark:bg-zinc-955 rounded-xl border border-zinc-150 dark:border-zinc-850 transition-colors hover:border-zinc-350 dark:hover:border-zinc-750"
                         >
-                          <div className="text-[10px] text-zinc-650 dark:text-zinc-455 italic leading-relaxed">
+                          <div className="text-[10px] text-zinc-550 dark:text-zinc-450 italic leading-relaxed">
                             <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-650 block mb-1">
                               Original Bullet
                             </span>
                             {origBullet || 'N/A'}
                           </div>
-                          <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-900 pt-2.5 md:pt-0 md:pl-4 flex flex-col justify-between">
+                          <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-relaxed border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 pt-2.5 md:pt-0 md:pl-4 flex flex-col justify-between">
                             <div>
                               <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500/80 block mb-1">
                                 Tailored Rewrite
@@ -931,23 +980,37 @@ export const Analyze: React.FC = () => {
                             
                             <div className="flex flex-wrap gap-1.5 mt-2">
                               {bulletBadges.includes('Action verb') && (
-                                <span className="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-455 border border-emerald-250 dark:border-emerald-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
-                                  ⚡ Action verb
+                                <span className="bg-amber-50 dark:bg-amber-955/20 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30 px-2 py-0.5 rounded-full text-[9px] font-semibold flex items-center gap-1">
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                                  </svg>
+                                  Action Verb
                                 </span>
                               )}
                               {bulletBadges.includes('Quantified') && (
-                                <span className="bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-455 border border-blue-250 dark:border-blue-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
-                                  📊 Quantified
+                                <span className="bg-blue-50 dark:bg-blue-955/20 text-blue-600 dark:text-blue-455 border border-blue-200/50 dark:border-blue-900/30 px-2 py-0.5 rounded-full text-[9px] font-semibold flex items-center gap-1">
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v5.25c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 013 18.375v-5.25zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125v-9.75zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v14.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                                  </svg>
+                                  Quantified
                                 </span>
                               )}
                               {bulletBadges.includes('JD keyword') && (
-                                <span className="bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-455 border border-indigo-250 dark:border-indigo-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
-                                  🎯 JD keyword
+                                <span className="bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-405 border border-emerald-200/50 dark:border-emerald-900/30 px-2 py-0.5 rounded-full text-[9px] font-semibold flex items-center gap-1">
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1.5m0 15V21m-9-9h1.5m15 0H21m-9-9a9 9 0 100 18 9 9 0 000-18z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9a3 3 0 100 6 3 3 0 000-6z" />
+                                  </svg>
+                                  JD Keyword
                                 </span>
                               )}
                               {bulletBadges.includes('Impact') && (
-                                <span className="bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-455 border border-amber-250 dark:border-amber-900/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
-                                  ✨ Impact focused
+                                <span className="bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-405 border border-emerald-200/50 dark:border-emerald-900/30 px-2 py-0.5 rounded-full text-[9px] font-semibold flex items-center gap-1">
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l8.904-4.473L21 9l-3.482-3.482L9.813 15.904z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 21l3.5-3.5m0 0l-3.5-3.5m3.5 3.5H3" />
+                                  </svg>
+                                  Impact Focused
                                 </span>
                               )}
                             </div>
@@ -963,9 +1026,9 @@ export const Analyze: React.FC = () => {
         </div>
 
         {/* Education Display */}
-        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-zinc-550 dark:text-zinc-400 uppercase tracking-wider">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="flex justify-between items-center pb-2 border-b border-zinc-100 dark:border-zinc-800">
+            <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
               Education History
             </span>
             <button
@@ -973,32 +1036,103 @@ export const Analyze: React.FC = () => {
                 copySectionToClipboard(
                   'edu',
                   tailoredResume.education
-                    .map(
-                      (edu) =>
-                        `**${edu.institution}**\n${edu.degree} (${edu.year})`
-                    )
+                    .map((edu) => `**${edu.institution}**\n${edu.degree} (${edu.year})`)
                     .join('\n\n')
                 )
               }
-              className="text-[9px] text-zinc-650 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-955 transition-colors shadow-sm active:scale-95"
+              className="text-[9px] text-zinc-500 hover:text-zinc-850 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 px-2 py-1 rounded bg-zinc-50 dark:bg-zinc-955 transition-colors shadow-sm active:scale-95"
             >
               {copiedSection === 'edu' ? 'Copied!' : 'Copy Edu'}
             </button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3.5 divide-y divide-zinc-100 dark:divide-zinc-800/60">
             {tailoredResume.education.map((edu, idx) => (
-              <div key={idx} className="text-left">
-                <p className="text-xs font-semibold text-zinc-900 dark:text-white">
+              <div key={idx} className="text-left pt-3.5 first:pt-0">
+                <p className="text-xs font-semibold text-zinc-905 dark:text-white">
                   {edu.institution}
                 </p>
-                <p className="text-[10px] text-zinc-600 dark:text-zinc-400 mt-0.5">
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
                   {edu.degree} —{' '}
-                  <span className="text-zinc-500 dark:text-zinc-500">{edu.year}</span>
+                  <span className="text-zinc-400 dark:text-zinc-500">{edu.year}</span>
                 </p>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Grid for Achievements, Positions, Certifications */}
+        {((tailoredResume.achievements && tailoredResume.achievements.length > 0) ||
+          (tailoredResume.positions && tailoredResume.positions.length > 0) ||
+          (tailoredResume.certifications && tailoredResume.certifications.length > 0)) && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Achievements Card */}
+            {tailoredResume.achievements && tailoredResume.achievements.length > 0 && (
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4 text-left">
+                <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                  <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-5.25a1.125 1.125 0 00-1.125 1.125v3.375m9 0h-9M9 10.5V6.75m0 0l-3.75 3.75M9 6.75L12.75 10.5M9 6.75h6.75" />
+                  </svg>
+                  <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Achievements</span>
+                </div>
+                <ul className="space-y-2">
+                  {tailoredResume.achievements.map((item, idx) => (
+                    <li key={idx} className="text-[10px] text-zinc-700 dark:text-zinc-305 leading-relaxed flex items-start gap-1.5">
+                      <span className="text-emerald-500 font-bold shrink-0">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Positions Card */}
+            {tailoredResume.positions && tailoredResume.positions.length > 0 && (
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4 text-left">
+                <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A11.386 11.386 0 0110.089 21c-2.24 0-4.364-.647-6.17-1.782v-.109a11.386 11.386 0 014.912-1.782v.109A11.386 11.386 0 0110.09 21M15 9.75a3 3 0 11-6 0 3 3 0 016 0zm-9.75 0a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Leadership</span>
+                </div>
+                <div className="space-y-3">
+                  {tailoredResume.positions.map((pos, idx) => (
+                    <div key={idx} className="space-y-0.5">
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] font-bold text-zinc-900 dark:text-white leading-tight">{pos.title}</span>
+                        <span className="text-[8px] text-zinc-450 shrink-0 ml-2">{pos.duration}</span>
+                      </div>
+                      <p className="text-[9px] text-zinc-450">{pos.organization}</p>
+                      <p className="text-[9.5px] text-zinc-600 dark:text-zinc-400 mt-1 leading-normal">{pos.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Certifications Card */}
+            {tailoredResume.certifications && tailoredResume.certifications.length > 0 && (
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4 text-left">
+                <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                  <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Certifications</span>
+                </div>
+                <div className="space-y-3">
+                  {tailoredResume.certifications.map((cert, idx) => (
+                    <div key={idx} className="space-y-0.5">
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] font-bold text-zinc-900 dark:text-white leading-tight">{cert.name}</span>
+                        {cert.year && <span className="text-[8px] text-zinc-450 shrink-0 ml-2">{cert.year}</span>}
+                      </div>
+                      <p className="text-[9px] text-zinc-455">{cert.issuer}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   };
@@ -1006,168 +1140,113 @@ export const Analyze: React.FC = () => {
   const renderAtsScoreTab = () => {
     if (!atsScore) return null;
     return (
-      <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-6 space-y-8 animate-fadeIn">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-6 animate-fadeIn text-left">
+        <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">
+          <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-455 uppercase tracking-wider flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+            </svg>
+            ATS Match Analysis
+          </span>
+        </div>
+
         {/* Score rings */}
-        <div className="flex justify-around items-center py-6 border-b border-zinc-200 dark:border-zinc-900">
+        <div className="flex justify-around items-center py-4 border-b border-zinc-100 dark:border-zinc-800">
           <CircularProgress
             score={atsScore.before}
-            colorClass="text-zinc-500 dark:text-zinc-600"
-            label="Original ATS Score"
-            size={90}
+            colorClass="text-zinc-400 dark:text-zinc-500"
+            label="Original Score"
+            size={80}
           />
-          <div className="text-2xl text-zinc-400 dark:text-zinc-700 font-light">→</div>
+          <div className="text-xl text-zinc-300 dark:text-zinc-700 font-light">→</div>
           <CircularProgress
             score={atsScore.after}
-            colorClass="text-emerald-600 dark:text-emerald-500"
-            label="Tailored ATS Score"
-            size={90}
+            colorClass="text-emerald-500 dark:text-emerald-450"
+            label="Tailored Score"
+            size={80}
           />
         </div>
 
         {/* Score Breakdown Bars */}
-        {atsBreakdown ? (
-          <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-900">
-            <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
+        {atsBreakdown && (
+          <div className="space-y-4 pt-2">
+            <span className="text-[9.5px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">
               ATS Metric Breakdown
             </span>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Keyword Match */}
-              <div className="space-y-1 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-sm border border-zinc-100 dark:border-zinc-900/50 p-3 rounded-lg">
-                <div className="flex justify-between text-[11px] font-semibold">
-                  <span className="text-zinc-700 dark:text-zinc-300">Keyword Match</span>
-                  <span className="text-zinc-900 dark:text-white">{atsBreakdown.keywordMatch}%</span>
+              <div className="space-y-1 bg-zinc-50 dark:bg-zinc-950 p-3 rounded-lg border border-zinc-150 dark:border-zinc-850">
+                <div className="flex justify-between text-[10.5px] font-semibold">
+                  <span className="text-zinc-655 dark:text-zinc-350">Keyword Match</span>
+                  <span className="text-zinc-850 dark:text-white">{atsBreakdown.keywordMatch}%</span>
                 </div>
-                <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${atsBreakdown.keywordMatch}%` }}></div>
                 </div>
               </div>
 
               {/* Bullet Quality */}
-              <div className="space-y-1 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-sm border border-zinc-100 dark:border-zinc-900/50 p-3 rounded-lg">
-                <div className="flex justify-between text-[11px] font-semibold">
-                  <span className="text-zinc-700 dark:text-zinc-300">Bullet Quality</span>
-                  <span className="text-zinc-900 dark:text-white">{atsBreakdown.bulletQuality}%</span>
+              <div className="space-y-1 bg-zinc-50 dark:bg-zinc-955 p-3 rounded-lg border border-zinc-150 dark:border-zinc-850">
+                <div className="flex justify-between text-[10.5px] font-semibold">
+                  <span className="text-zinc-655 dark:text-zinc-350">Bullet Quality</span>
+                  <span className="text-zinc-850 dark:text-white">{atsBreakdown.bulletQuality}%</span>
                 </div>
-                <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${atsBreakdown.bulletQuality}%` }}></div>
                 </div>
               </div>
 
               {/* Quantification */}
-              <div className="space-y-1 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-sm border border-zinc-100 dark:border-zinc-900/50 p-3 rounded-lg">
-                <div className="flex justify-between text-[11px] font-semibold">
-                  <span className="text-zinc-700 dark:text-zinc-300">Quantification (Metrics)</span>
-                  <span className="text-zinc-900 dark:text-white">{atsBreakdown.quantification}%</span>
+              <div className="space-y-1 bg-zinc-50 dark:bg-zinc-955 p-3 rounded-lg border border-zinc-150 dark:border-zinc-850">
+                <div className="flex justify-between text-[10.5px] font-semibold">
+                  <span className="text-zinc-655 dark:text-zinc-350">Quantification</span>
+                  <span className="text-zinc-850 dark:text-white">{atsBreakdown.quantification}%</span>
                 </div>
-                <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div className="h-full bg-purple-500 rounded-full transition-all duration-500" style={{ width: `${atsBreakdown.quantification}%` }}></div>
                 </div>
               </div>
 
               {/* Sections Complete */}
-              <div className="space-y-1 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-sm border border-zinc-100 dark:border-zinc-900/50 p-3 rounded-lg">
-                <div className="flex justify-between text-[11px] font-semibold">
-                  <span className="text-zinc-700 dark:text-zinc-300">Sections Complete</span>
-                  <span className="text-zinc-900 dark:text-white">{atsBreakdown.sectionsComplete}%</span>
+              <div className="space-y-1 bg-zinc-50 dark:bg-zinc-955 p-3 rounded-lg border border-zinc-155 dark:border-zinc-855">
+                <div className="flex justify-between text-[10.5px] font-semibold">
+                  <span className="text-zinc-655 dark:text-zinc-350">Sections Complete</span>
+                  <span className="text-zinc-850 dark:text-white">{atsBreakdown.sectionsComplete}%</span>
                 </div>
-                <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div className="h-full bg-teal-500 rounded-full transition-all duration-500" style={{ width: `${atsBreakdown.sectionsComplete}%` }}></div>
                 </div>
               </div>
 
               {/* Achievements Present */}
-              <div className="space-y-1 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-sm border border-zinc-100 dark:border-zinc-900/50 p-3 rounded-lg md:col-span-2">
-                <div className="flex justify-between text-[11px] font-semibold">
-                  <span className="text-zinc-700 dark:text-zinc-300">Achievements Section</span>
-                  <span className="text-zinc-900 dark:text-white">{atsBreakdown.achievementsPresent}%</span>
+              <div className="space-y-1 bg-zinc-50 dark:bg-zinc-955 p-3 rounded-lg border border-zinc-150 dark:border-zinc-850 md:col-span-2">
+                <div className="flex justify-between text-[10.5px] font-semibold">
+                  <span className="text-zinc-655 dark:text-zinc-350">Achievements Section</span>
+                  <span className="text-zinc-850 dark:text-white">{atsBreakdown.achievementsPresent}%</span>
                 </div>
-                <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${atsBreakdown.achievementsPresent}%` }}></div>
                 </div>
               </div>
             </div>
           </div>
-        ) : (
-          atsScore.breakdown && (
-            <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-900">
-              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
-                ATS Score Breakdown
-              </span>
-              <div className="space-y-3">
-                {/* Keyword Match */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-semibold">
-                    <span className="text-zinc-700 dark:text-zinc-300">Keyword Match (JD Skills)</span>
-                    <span className="text-zinc-900 dark:text-white">{atsScore.breakdown.keywordMatch} / 40</span>
-                  </div>
-                  <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(atsScore.breakdown.keywordMatch / 40) * 100}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Bullet Quality */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-semibold">
-                    <span className="text-zinc-700 dark:text-zinc-300">Bullet Quality (Action Verbs)</span>
-                    <span className="text-zinc-900 dark:text-white">{atsScore.breakdown.bulletQuality} / 20</span>
-                  </div>
-                  <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(atsScore.breakdown.bulletQuality / 20) * 100}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Quantification */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-semibold">
-                    <span className="text-zinc-700 dark:text-zinc-300">Quantification (Metrics & Impact)</span>
-                    <span className="text-zinc-900 dark:text-white">{atsScore.breakdown.quantification} / 20</span>
-                  </div>
-                  <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-purple-500 rounded-full" style={{ width: `${(atsScore.breakdown.quantification / 20) * 100}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Sections Complete */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-semibold">
-                    <span className="text-zinc-700 dark:text-zinc-300">Sections Complete</span>
-                    <span className="text-zinc-900 dark:text-white">{atsScore.breakdown.sectionsComplete} / 10</span>
-                  </div>
-                  <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-teal-500 rounded-full" style={{ width: `${(atsScore.breakdown.sectionsComplete / 10) * 100}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Achievements Present */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-semibold">
-                    <span className="text-zinc-700 dark:text-zinc-300">Achievements Section</span>
-                    <span className="text-zinc-900 dark:text-white">{atsScore.breakdown.achievementsPresent} / 10</span>
-                  </div>
-                  <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(atsScore.breakdown.achievementsPresent / 10) * 100}%` }}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
         )}
 
-        {/* Missing keyword badges */}
-        <div className="space-y-3">
-          <span className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-wider block">
+        {/* Missing keywords */}
+        <div className="space-y-3 pt-2">
+          <span className="text-[9.5px] font-bold text-zinc-405 dark:text-zinc-500 uppercase tracking-wider block">
             Target Job Keywords Addressed
           </span>
           {missingKeywords.length === 0 ? (
-            <p className="text-[11px] text-zinc-600 dark:text-zinc-500">
-              Excellent! The resume rewriter did not detect any key missing terms.
+            <p className="text-[10.5px] text-zinc-500">
+              Excellent! All target keywords have been integrated.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="flex flex-wrap gap-1.5">
               {missingKeywords.map((kw, idx) => (
                 <span
                   key={idx}
-                  className="bg-red-50 dark:bg-red-955/20 text-red-655 dark:text-red-400 border border-red-200/50 dark:border-red-900/35 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+                  className="bg-red-50 dark:bg-red-955/20 text-red-655 dark:text-red-400 border border-red-200/40 dark:border-red-900/30 px-2 py-0.5 rounded text-[9.5px] font-semibold"
                 >
                   {kw}
                 </span>
@@ -1177,14 +1256,10 @@ export const Analyze: React.FC = () => {
         </div>
 
         {/* Scoring detail note */}
-        <div className="bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 p-4 rounded-xl">
-          <h5 className="text-xs font-semibold text-zinc-900 dark:text-white mb-1">
-            Scoring Methodology
-          </h5>
-          <p className="text-[10px] text-zinc-500 dark:text-zinc-550 leading-relaxed">
-            Before score maps your original profile matching against the JD constraints. 
-            After score estimates the improved match rate following skill reordering and target keyword injections.
-          </p>
+        <div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-150 dark:border-zinc-850 p-3.5 rounded-lg text-[9.5px] text-zinc-500 leading-relaxed">
+          <span className="font-semibold text-zinc-700 dark:text-zinc-400 block mb-0.5">Scoring Methodology</span>
+          Before score maps your original profile matching against the JD constraints. 
+          After score estimates the improved match rate following skill reordering and target keyword injections.
         </div>
       </div>
     );
@@ -1193,43 +1268,53 @@ export const Analyze: React.FC = () => {
   const renderCareerAdviceTab = () => {
     if (!careerAdvice) return null;
     return (
-      <div className="space-y-6 animate-fadeIn">
-        {/* Action Item highlight */}
-        <div className="bg-gradient-to-r from-amber-500/10 to-zinc-100 dark:to-zinc-955 border border-amber-500/20 rounded-xl p-6 space-y-1.5">
-          <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest block">
-            Do this before applying:
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-6 animate-fadeIn text-left">
+        <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">
+          <span className="text-[10px] font-bold text-zinc-505 dark:text-zinc-455 uppercase tracking-wider flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l8.904-4.473L21 9l-3.482-3.482L9.813 15.904z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 21l3.5-3.5m0 0l-3.5-3.5m3.5 3.5H3" />
+            </svg>
+            AI Advice & Recommendations
           </span>
-          <p className="text-xs text-zinc-855 dark:text-zinc-200 leading-relaxed font-semibold">
+        </div>
+
+        {/* Action Item highlight */}
+        <div className="bg-amber-50/50 dark:bg-amber-955/10 border border-amber-200/50 dark:border-amber-900/30 rounded-xl p-4 space-y-1">
+          <span className="text-[9px] font-black text-amber-600 dark:text-amber-450 uppercase tracking-widest block">
+            Critical Action Item:
+          </span>
+          <p className="text-[11px] text-zinc-800 dark:text-zinc-200 leading-relaxed font-semibold">
             {careerAdvice.actionItem}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Strengths list */}
-          <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-3">
-            <span className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-wider block">
+          <div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-150 dark:border-zinc-850 rounded-xl p-4 space-y-2">
+            <span className="text-[9.5px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
               Core Strengths
             </span>
-            <ul className="space-y-2">
+            <ul className="space-y-1.5">
               {careerAdvice.strengths.map((str, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-[10px] text-zinc-700 dark:text-zinc-305 leading-relaxed">
-                  <span className="text-emerald-500 font-bold">✓</span>
-                  {str}
+                <li key={idx} className="flex items-start gap-1.5 text-[10px] text-zinc-700 dark:text-zinc-350 leading-normal">
+                  <span className="text-emerald-500 font-bold shrink-0">✓</span>
+                  <span>{str}</span>
                 </li>
               ))}
             </ul>
           </div>
 
           {/* Gaps list */}
-          <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-3">
-            <span className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-wider block">
+          <div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-155 dark:border-zinc-855 rounded-xl p-4 space-y-2">
+            <span className="text-[9.5px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
               Identified Skill Gaps
             </span>
-            <ul className="space-y-2">
+            <ul className="space-y-1.5">
               {careerAdvice.gaps.map((gap, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-[10px] text-zinc-700 dark:text-zinc-305 leading-relaxed">
-                  <span className="text-amber-500 font-bold">⚠️</span>
-                  {gap}
+                <li key={idx} className="flex items-start gap-1.5 text-[10px] text-zinc-700 dark:text-zinc-350 leading-normal">
+                  <span className="text-amber-500 font-bold shrink-0">⚠️</span>
+                  <span>{gap}</span>
                 </li>
               ))}
             </ul>
@@ -1237,15 +1322,15 @@ export const Analyze: React.FC = () => {
         </div>
 
         {/* Interview Topics */}
-        <div className="bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-xl p-5 space-y-3">
-          <span className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-wider block">
+        <div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-155 dark:border-zinc-855 rounded-xl p-4 space-y-2.5">
+          <span className="text-[9.5px] font-bold text-zinc-505 dark:text-zinc-400 uppercase tracking-wider block">
             Predicted Technical Interview Topics
           </span>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {careerAdvice.interviewTopics.map((topic, idx) => (
               <span
                 key={idx}
-                className="bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 px-3 py-1 rounded-lg text-zinc-700 dark:text-zinc-305 text-[10px] font-medium"
+                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-2.5 py-1 rounded text-zinc-700 dark:text-zinc-305 text-[10px] font-medium shadow-xs"
               >
                 {topic}
               </span>
@@ -1574,64 +1659,113 @@ export const Analyze: React.FC = () => {
           {/* RESULTS STATE */}
           {tailoredResume && agentStatus === 'done' && (
             <div className="space-y-6">
-              {qualityIssues.length > 0 && (
-                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-250 dark:border-amber-900/30 rounded-2xl p-4 flex flex-col gap-2 animate-fadeIn">
-                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400 font-bold text-[11px]">
-                    <span>⚠️</span> {qualityIssues.length} quality issues found — consider reviewing before downloading
+              {/* Overall Score Comparison Header */}
+              {atsScore && (
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 animate-fadeIn">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg text-emerald-605 dark:text-emerald-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-xs font-bold text-zinc-900 dark:text-white">Analysis & Tailoring Complete</h4>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">Resume optimized against job requirements</p>
+                    </div>
                   </div>
-                  <ul className="list-disc pl-5 space-y-1 text-zinc-500 dark:text-zinc-400 text-[10.5px] leading-relaxed">
-                    {qualityIssues.slice(0, 3).map((issue, idx) => (
-                      <li key={idx}>{issue}</li>
-                    ))}
-                    {qualityIssues.length > 3 && (
-                      <li>... and {qualityIssues.length - 3} more issues</li>
-                    )}
-                  </ul>
+                  <div className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-150 dark:border-zinc-850 px-4 py-2 rounded-xl">
+                    <div className="text-center">
+                      <span className="text-[9px] font-bold text-zinc-450 dark:text-zinc-500 uppercase block">Before</span>
+                      <span className="text-sm font-black text-zinc-450 dark:text-zinc-550">{atsScore.before}%</span>
+                    </div>
+                    <div className="text-zinc-305 dark:text-zinc-700 text-lg font-light">→</div>
+                    <div className="text-center">
+                      <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-500 uppercase block">After</span>
+                      <span className="text-sm font-black text-emerald-605 dark:text-emerald-450">{atsScore.after}%</span>
+                    </div>
+                  </div>
                 </div>
               )}
+
+              {/* Validation Warnings Card */}
+              {validationWarnings && validationWarnings.length > 0 && (
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 border-l-4 border-l-amber-500 shadow-sm space-y-4 animate-fadeIn">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Needs Attention</span>
+                    <span className="bg-amber-100 dark:bg-amber-955/40 text-amber-800 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {validationWarnings.length} Warnings
+                    </span>
+                  </div>
+                  <div className="divide-y divide-zinc-150 dark:divide-zinc-800/60 max-h-60 overflow-y-auto pr-1">
+                    {validationWarnings.map((warn, idx) => (
+                      <div key={idx} className="py-3 first:pt-0 last:pb-0 text-left">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold text-zinc-500 uppercase">
+                            {warn.section} {warn.bulletIndex !== undefined ? `#${warn.itemIndex + 1}, bullet #${warn.bulletIndex + 1}` : `#${warn.itemIndex + 1}`}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-800 dark:text-zinc-200 font-semibold mt-1">
+                          This bullet point is {getIssueReadableText(warn.issue)}
+                        </p>
+                        <p className="text-[10px] text-zinc-500 dark:text-zinc-450 mt-0.5 leading-normal">
+                          {warn.message}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {showConfig ? (
                 /* TABBED VIEW (Used when inputs config is visible) */
                 <div className="space-y-6 animate-fadeIn">
-                  {/* Tab Navigation header */}
-                  <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-900 pr-2">
-                    <div className="flex">
+                  {/* Segmented Control Navigation Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-150 dark:border-zinc-900 pr-2">
+                    <div className="flex p-1 bg-zinc-100 dark:bg-zinc-950 border border-zinc-250 dark:border-zinc-850 rounded-xl w-full sm:w-auto">
                       <button
                         onClick={() => setActiveTab('resume')}
-                        className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                        className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                           activeTab === 'resume'
-                            ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
-                            : 'border-transparent text-zinc-500 dark:text-zinc-450 hover:text-zinc-750 dark:hover:text-zinc-200'
+                            ? 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-905 dark:text-white shadow-sm'
+                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-205'
                         }`}
                       >
-                        Tailored Resume
+                        Resume
                       </button>
                       <button
                         onClick={() => setActiveTab('ats')}
-                        className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                        className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                           activeTab === 'ats'
-                            ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
-                            : 'border-transparent text-zinc-500 dark:text-zinc-450 hover:text-zinc-750 dark:hover:text-zinc-200'
+                            ? 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-905 dark:text-white shadow-sm'
+                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-205'
                         }`}
                       >
-                        ATS Score
+                        ATS Breakdown
                       </button>
                       <button
                         onClick={() => setActiveTab('advice')}
-                        className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                        className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                           activeTab === 'advice'
-                            ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
-                            : 'border-transparent text-zinc-500 dark:text-zinc-450 hover:text-zinc-750 dark:hover:text-zinc-200'
+                            ? 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-905 dark:text-white shadow-sm'
+                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-205'
                         }`}
                       >
                         Career Advice
                       </button>
                     </div>
+
                     <button
                       type="button"
                       onClick={() => setShowSaveModal(true)}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.2 rounded-lg text-xs font-semibold shadow-sm cursor-pointer transition-colors flex items-center gap-1.5 active:scale-95"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm cursor-pointer transition-colors flex items-center gap-1.5 active:scale-95 self-end sm:self-center"
                     >
-                      <span>💾</span> Save
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 13.5l3 3m0 0l3-3m-3 3v-6m10.125-3V17.25c0 .621-.504 1.125-1.125 1.125H4.125A1.125 1.125 0 013 17.25V6.75c0-.621.504-1.125 1.125-1.125h12.75c.3 0 .588.12.8.334l2.122 2.12a1.125 1.125 0 01.303.78z" />
+                      </svg>
+                      Save Analysis
                     </button>
                   </div>
 
@@ -1661,21 +1795,8 @@ export const Analyze: React.FC = () => {
 
                   {/* Right Side: Score, Keywords, Advice & Styles (5 Cols) */}
                   <div className="lg:col-span-5 space-y-6">
-                    {/* ATS match details */}
-                    <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-2xl p-6 space-y-6 shadow-sm">
-                      <h4 className="text-[11px] font-black text-zinc-505 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                        <span>📈</span> ATS Match Analysis
-                      </h4>
-                      {renderAtsScoreTab()}
-                    </div>
-
-                    {/* Career advice details */}
-                    <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-900 rounded-2xl p-6 space-y-6 shadow-sm">
-                      <h4 className="text-[11px] font-black text-zinc-505 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                        <span>💡</span> AI Advice & Recommendations
-                      </h4>
-                      {renderCareerAdviceTab()}
-                    </div>
+                    {renderAtsScoreTab()}
+                    {renderCareerAdviceTab()}
                   </div>
                 </div>
               )}

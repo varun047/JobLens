@@ -273,9 +273,9 @@ Available projects in this candidate's GitHub:
 ${selectedAnalyses.map((r, i) => `
 ${i + 1}. ${r.repo_name}
    Summary: ${r.summary}
-   Tech: ${r.techStack?.join(', ')}
-   Domains: ${r.domains?.join(', ')}
-   Highlights: ${r.highlights?.join(', ')}
+   Tech: ${Array.isArray(r.techStack) ? r.techStack.join(', ') : r.techStack || ''}
+   Domains: ${Array.isArray(r.domains) ? r.domains.join(', ') : r.domains || ''}
+   Highlights: ${Array.isArray(r.highlights) ? r.highlights.join(', ') : r.highlights || ''}
 `).join('\n')}
 
 Job Description: ${jdText}
@@ -319,19 +319,24 @@ Return ONLY raw JSON:
             const shouldRun2A = !['step2a_done', 'step2b', 'step2b_done', 'step2c', 'step2c_done', 'step2d', 'step2d_done', 'step2_done'].includes(currentStatus) || !summaryResult;
             if (shouldRun2A) {
               set({ agentStatus: 'step2a', statusMessage: 'Writing your professional summary...' });
+              const educationYear = baseResume.education[0]?.year ? ` (Graduation/Timing: ${baseResume.education[0].year})` : '';
               const summaryPrompt = `You are an expert resume writer.
 
 Write a 3-line professional summary for this candidate tailored to the job description.
 
 Rules:
-- Line 1: Who they are + years of experience + key identity
-- Line 2: Top 2-3 technical strengths most relevant to JD
-- Line 3: What they bring to this specific role/company
+- Line 1: State the candidate's actual current status (e.g., "final-year ${baseResume.education[0]?.degree || 'student'} student" or "professional with X years of experience") based on the profile, explicitly naming the target role/seniority (e.g., "targeting a ${jdIntelligence?.seniority || 'mid'} Software Engineer role"). Do NOT use vague "brings a foundation" language.
+- Line 2: Top 2-3 technical strengths most relevant to JD.
+- Line 3: What they bring to this specific role/company.
+
+Content constraints:
+- Do NOT use generic corporate filler phrases. Vague filler phrases like "drive innovation and growth", "dynamic environment", "passionate about", "strong technical foundation", "results-driven" must not appear.
+- Every sentence must contain a specific, concrete detail (a real skill, a real project name, a real status/timeline) — not a vague claim.
 
 Candidate profile:
 Name: ${baseResume.name}
 Current role/status: ${baseResume.experience[0]?.role || 'Student'} at ${baseResume.experience[0]?.company || baseResume.education[0]?.institution}
-Education: ${baseResume.education[0]?.degree} from ${baseResume.education[0]?.institution}
+Education: ${baseResume.education[0]?.degree} from ${baseResume.education[0]?.institution}${educationYear}
 Top skills: ${baseResume.skills.slice(0, 8).join(', ')}
 Key experience highlights: ${baseResume.experience.map(e => e.role + ' at ' + e.company).join('; ')}
 Key project highlights: ${baseResume.projects.map(p => p.name).join(', ')}
@@ -366,16 +371,11 @@ RULES FOR BULLET POINTS:
 2. EXPLICITLY BANNED WORDS: Worked, Helped, Assisted, Responsible for, Participated. Do NOT use these.
 3. Use the XYZ formula: "Accomplished X by doing Y resulting in Z".
 4. Be 15-20 words per bullet point.
-5. Include a real metric where plausible (e.g., time saved, users served, % improvement, lines of code, components built). If exact metrics are unknown, use reasonable estimates.
+5. Include a real metric where plausible (e.g., time saved, users served, % improvement, lines of code, components built). If exact metrics are unknown, use reasonable estimates, but caution against wildly precise-sounding invented numbers (e.g. prefer "reduced load time by an estimated 20-30%" framing or a qualitative claim over a suspiciously precise single invented figure like "37.4% improvement" when no real number was provided).
 6. Naturally include 1-2 of these required skills where truthful: ${jdIntelligence?.requiredSkills?.slice(0, 6)?.join(', ') || ''}
 
 RULES FOR ATS SCORE CALCULATION:
-Calculate actual ATS score based on:
-- Keyword match: what % of JD required skills appear in resume (max 40 pts)
-- Bullet quality: do bullets start with action verbs (max 20 pts)
-- Quantification: how many bullets have numbers/metrics (max 20 pts)
-- Sections complete: summary + skills + exp + projects + education (max 10 pts)
-- Achievements present: (max 10 pts)
+Calculate actual ATS score (before and after tailoring) as whole numbers between 0 and 100 based on keyword match, bullet quality, quantification, sections complete, and achievements present.
 
 Experience to rewrite:
 ${JSON.stringify(baseResume.experience.map(exp => ({
@@ -395,14 +395,7 @@ Return ONLY raw JSON matching this schema:
   }],
   "atsScore": {
     "before": number, // whole number 0-100, based on original resume
-    "after": number,  // whole number 0-100, based on tailored resume
-    "breakdown": {
-      "keywordMatch": number, // points awarded out of 40
-      "bulletQuality": number, // points awarded out of 20
-      "quantification": number, // points awarded out of 20
-      "sectionsComplete": number, // points awarded out of 10
-      "achievementsPresent": number // points awarded out of 10
-    }
+    "after": number  // whole number 0-100, based on tailored resume
   },
   "missingKeywords": ["string"]
 }`;
@@ -436,7 +429,10 @@ RULES FOR PROJECT BULLETS:
 3. EXPLICITLY BANNED WORDS: Worked, Helped, Assisted, Responsible for, Participated. Do NOT use these.
 4. Use the XYZ formula: "Accomplished X by doing Y resulting in Z".
 5. Be 15-20 words per bullet point.
-6. Include a real metric where plausible (e.g., handling X requests, processing Y records, reducing Z time, supporting N users, across P components).
+6. Handling of metrics:
+   - For projects that are clearly personal/academic/practice projects (no evidence of real production users — infer this from the project description/README content passed in, or default to treating any project without explicit deployment/user-count evidence as personal/practice), do NOT invent usage-scale numbers (requests/sec, user counts, records processed) that imply real-world production traffic. Instead emphasize concrete TECHNICAL scope: architecture decisions, specific algorithms/data structures used, number of components/modules built, lines of code, test coverage, or performance optimizations that are inherent to the code itself (e.g. "reduced query time from X to Y via indexing" is fine if it's a genuine before/after the codebase shows; "served 50,000 users" for a project with no deployment evidence is not).
+   - Only use usage-scale metrics (requests handled, users served, uptime) for projects with clear evidence of real deployment/usage in the repo/README data passed into the prompt.
+   - When no real metric is available and none can be credibly inferred, it's better to describe technical depth qualitatively (e.g. "applying OOP principles and modular component architecture") than to invent a specific fake number.
 7. Naturally include 1-2 of these required skills where truthful: ${jdIntelligence?.requiredSkills?.slice(0, 4)?.join(', ') || ''}
 
 Chosen projects (already ranked by relevance):
