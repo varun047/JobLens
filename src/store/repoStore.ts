@@ -343,6 +343,11 @@ README: ${repo.readme || 'No README available'}
 File tree: ${(repo.fileTree || []).slice(0, 30).join('\n')}
 Key files: ${(repo.keyFiles || []).map(f => f.path + ':\n' + f.content).join('\n---\n')}
 
+Rules:
+1. Base every claim in 'highlights' strictly on what is directly evidenced in the README, file tree, or key file contents provided below. Do NOT invent specific performance numbers (frame rates, concurrency counts, latency figures, memory/CPU reduction percentages, user counts) unless they are explicitly stated in the README or code comments provided.
+2. If no such evidence exists, describe genuine structural/technical characteristics instead — e.g. 'uses component-based architecture with React hooks', 'implements CRUD operations against a MongoDB schema', 'organizes styles using CSS Grid layout' — rather than fabricating performance claims.
+3. If the file tree and key files suggest a small, single-purpose, or demo-style project (few files, no backend, no database, no external API integration), the 'complexity' field must be 'beginner' regardless of how the README is worded, and 'highlights' should reflect that modest scope honestly rather than inflating it.
+
 Return this exact JSON:
 {
   "summary": "string",
@@ -565,6 +570,11 @@ Project name: ${repo.name}
 README: ${repo.readme || 'No README available'}
 File tree: ${(repo.fileTree || []).slice(0, 30).join('\n')}
 Key files: ${(repo.keyFiles || []).map((f) => f.path + ':\n' + f.content).join('\n---\n')}
+
+Rules:
+1. Base every claim in 'highlights' strictly on what is directly evidenced in the README, file tree, or key file contents provided below. Do NOT invent specific performance numbers (frame rates, concurrency counts, latency figures, memory/CPU reduction percentages, user counts) unless they are explicitly stated in the README or code comments provided.
+2. If no such evidence exists, describe genuine structural/technical characteristics instead — e.g. 'uses component-based architecture with React hooks', 'implements CRUD operations against a MongoDB schema', 'organizes styles using CSS Grid layout' — rather than fabricating performance claims.
+3. If the file tree and key files suggest a small, single-purpose, or demo-style project (few files, no backend, no database, no external API integration), the 'complexity' field must be 'beginner' regardless of how the README is worded, and 'highlights' should reflect that modest scope honestly rather than inflating it.
 
 Return this exact JSON:
 {

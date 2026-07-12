@@ -347,77 +347,82 @@ export const Resumes: React.FC = () => {
         {/* List View */}
         {viewMode === 'list' && filteredResumes.length > 0 && (
           <div className="space-y-2">
-            {filteredResumes.map((analysis) => (
-              <div
-                key={analysis.id}
-                className="flex items-center justify-between p-4 
-                           bg-white dark:bg-[#121212] border border-zinc-200 
-                           dark:border-zinc-900 rounded-xl
-                           hover:border-zinc-350 dark:hover:border-zinc-700 
-                           transition-all"
-              >
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className={`px-2 py-1 rounded text-xs font-bold border 
-                                   whitespace-nowrap ${getAtsColor(analysis.ats_score?.after || 0)}`}>
-                    {analysis.ats_score?.after || 0}%
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-heading text-base font-bold text-zinc-900 dark:text-white truncate">
-                      {analysis.company_name}
-                    </p>
-                    
-                    {/* Responsive Subtitle */}
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="font-body text-sm text-zinc-500 dark:text-white/55 truncate">
-                        {analysis.job_title}
-                      </span>
-                      
-                      {/* Mobile-only date & skills */}
-                      <span className="text-[10px] text-zinc-405 dark:text-zinc-600 md:hidden">•</span>
-                      <span className="text-[10px] text-zinc-450 dark:text-zinc-500 whitespace-nowrap md:hidden">
-                        {new Date(analysis.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                      
-                      {analysis.tailored_resume?.skills?.length > 0 && (
-                        <>
-                          <span className="text-[10px] text-zinc-405 dark:text-zinc-650 md:hidden">•</span>
-                          <div className="flex gap-1 items-center md:hidden">
-                            {analysis.tailored_resume.skills.slice(0, 2).map((skill: string, i: number) => (
-                              <span key={i} className="font-body text-[11px] font-medium text-zinc-550 dark:text-white/50 bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/8 px-2 py-0.5 rounded">
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
+            {filteredResumes.map((analysis) => {
+              const previewSkills = (analysis.tailored_resume?.skillCategories && analysis.tailored_resume.skillCategories.length > 0)
+                ? analysis.tailored_resume.skillCategories.flatMap((cat: any) => cat.skills || [])
+                : (analysis.tailored_resume?.skills || []);
 
-                {/* Desktop-only metadata (skills & date) */}
-                <div className="hidden md:flex items-center gap-6 flex-1 min-w-0 justify-end mr-6">
-                  {/* Skills tags */}
-                  {analysis.tailored_resume?.skills?.length > 0 && (
-                    <div className="hidden lg:flex items-center gap-1.5 flex-wrap justify-end max-w-[200px] xl:max-w-[350px]">
-                      {analysis.tailored_resume.skills.slice(0, 3).map((skill: string, i: number) => (
-                        <span key={i} className="font-body text-[11px] font-medium text-zinc-550 dark:text-white/50 bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/8 px-2 py-0.5 rounded">
-                          {skill}
+              return (
+                <div
+                  key={analysis.id}
+                  className="flex items-center justify-between p-4 
+                             bg-white dark:bg-[#121212] border border-zinc-200 
+                             dark:border-zinc-900 rounded-xl
+                             hover:border-zinc-350 dark:hover:border-zinc-700 
+                             transition-all"
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className={`px-2 py-1 rounded text-xs font-bold border 
+                                     whitespace-nowrap ${getAtsColor(analysis.ats_score?.after || 0)}`}>
+                      {analysis.ats_score?.after || 0}%
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-heading text-base font-bold text-zinc-900 dark:text-white truncate">
+                        {analysis.company_name}
+                      </p>
+                      
+                      {/* Responsive Subtitle */}
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="font-body text-sm text-zinc-500 dark:text-white/55 truncate">
+                          {analysis.job_title}
                         </span>
-                      ))}
+                        
+                        {/* Mobile-only date & skills */}
+                        <span className="text-[10px] text-zinc-405 dark:text-zinc-650 md:hidden">•</span>
+                        <span className="text-[10px] text-zinc-450 dark:text-zinc-500 whitespace-nowrap md:hidden">
+                          {new Date(analysis.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                        
+                        {previewSkills.length > 0 && (
+                          <>
+                            <span className="text-[10px] text-zinc-405 dark:text-zinc-650 md:hidden">•</span>
+                            <div className="flex gap-1 items-center md:hidden">
+                              {previewSkills.slice(0, 2).map((skill: string, i: number) => (
+                                <span key={i} className="font-body text-[11px] font-medium text-zinc-550 dark:text-white/50 bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/8 px-2 py-0.5 rounded">
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  {/* Date */}
-                  <span className="text-xs text-zinc-450 dark:text-zinc-550 whitespace-nowrap">
-                    {new Date(analysis.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </span>
-                </div>
+                  </div>
 
-                {/* Desktop Buttons */}
-                <div className="hidden md:flex items-center gap-2 ml-4">
+                  {/* Desktop-only metadata (skills & date) */}
+                  <div className="hidden md:flex items-center gap-6 flex-1 min-w-0 justify-end mr-6">
+                    {/* Skills tags */}
+                    {previewSkills.length > 0 && (
+                      <div className="hidden lg:flex items-center gap-1.5 flex-wrap justify-end max-w-[200px] xl:max-w-[350px]">
+                        {previewSkills.slice(0, 3).map((skill: string, i: number) => (
+                          <span key={i} className="font-body text-[11px] font-medium text-zinc-550 dark:text-white/50 bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/8 px-2 py-0.5 rounded">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {/* Date */}
+                    <span className="text-xs text-zinc-450 dark:text-zinc-550 whitespace-nowrap">
+                      {new Date(analysis.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+
+                  {/* Desktop Buttons */}
+                  <div className="hidden md:flex items-center gap-2 ml-4">
                   <button
                     onClick={() => setSelectedResume(analysis)}
                     className="text-xs font-semibold px-3 py-1.5 rounded-lg border cursor-pointer
@@ -544,7 +549,8 @@ export const Resumes: React.FC = () => {
                   )}
                 </div>
               </div>
-            ))}
+            )
+          })}
           </div>
         )}
 
@@ -616,20 +622,51 @@ export const Resumes: React.FC = () => {
 
               {/* Modal Content — Resume Preview */}
               <div className="px-6 py-6 space-y-6">
-                {/* Skills */}
-                {selectedResume.tailored_resume?.skills?.length > 0 && (
+                {/* Summary */}
+                {selectedResume.tailored_resume?.summary && (
                   <div>
-                    <h3 className="font-body text-[10px] font-bold tracking-[1.5px] uppercase text-zinc-450 dark:text-white/40 mb-2">Skills</h3>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {selectedResume.tailored_resume.skills.map((s: string, idx: number) => (
-                        <span
-                          key={idx}
-                          className="font-body text-[11px] font-medium text-zinc-550 dark:text-white/50 bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/8 px-2 py-0.5 rounded"
-                        >
-                          {s}
-                        </span>
-                      ))}
-                    </div>
+                    <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider mb-2">Professional Summary</h3>
+                    <p className="text-xs text-zinc-700 dark:text-zinc-305 leading-relaxed text-left">
+                      {selectedResume.tailored_resume.summary}
+                    </p>
+                  </div>
+                )}
+
+                {/* Skills */}
+                {((selectedResume.tailored_resume?.skillCategories && selectedResume.tailored_resume.skillCategories.length > 0) || 
+                  (selectedResume.tailored_resume?.skills && selectedResume.tailored_resume.skills.length > 0)) && (
+                  <div>
+                    <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider mb-2">Skills</h3>
+                    {selectedResume.tailored_resume.skillCategories && selectedResume.tailored_resume.skillCategories.length > 0 ? (
+                      <div className="space-y-3 pt-1">
+                        {selectedResume.tailored_resume.skillCategories.map((cat: any, idx: number) => (
+                          <div key={idx} className="space-y-1 text-left">
+                            <span className="text-[10px] font-bold text-zinc-450 dark:text-zinc-550 uppercase tracking-wider">{cat.category}</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {cat.skills.map((s: string, sIdx: number) => (
+                                <span
+                                  key={sIdx}
+                                  className="font-body text-[11px] font-medium text-zinc-550 dark:text-white/50 bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/8 px-2 py-0.5 rounded"
+                                >
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {selectedResume.tailored_resume.skills.map((s: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="font-body text-[11px] font-medium text-zinc-550 dark:text-white/50 bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/8 px-2 py-0.5 rounded"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -688,6 +725,74 @@ export const Resumes: React.FC = () => {
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Achievements / Positions / Certifications */}
+                {((selectedResume.tailored_resume?.achievements && selectedResume.tailored_resume.achievements.length > 0) ||
+                  (selectedResume.tailored_resume?.positions && selectedResume.tailored_resume.positions.length > 0) ||
+                  (selectedResume.tailored_resume?.certifications && selectedResume.tailored_resume.certifications.length > 0)) && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+                    {selectedResume.tailored_resume.achievements && selectedResume.tailored_resume.achievements.length > 0 && (
+                      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm space-y-3">
+                        <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                          <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-5.25a1.125 1.125 0 00-1.125 1.125v3.375m9 0h-9M9 10.5V6.75m0 0l-3.75 3.75M9 6.75L12.75 10.5M9 6.75h6.75" />
+                          </svg>
+                          <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Achievements</span>
+                        </div>
+                        <ul className="space-y-1.5">
+                          {selectedResume.tailored_resume.achievements.map((item: string, idx: number) => (
+                            <li key={idx} className="text-[10px] text-zinc-700 dark:text-zinc-305 leading-relaxed flex items-start gap-1.5">
+                              <span className="text-emerald-500 font-bold shrink-0">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {selectedResume.tailored_resume.positions && selectedResume.tailored_resume.positions.length > 0 && (
+                      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm space-y-3">
+                        <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                          <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A11.386 11.386 0 0110.089 21c-2.24 0-4.364-.647-6.17-1.782v-.109a11.386 11.386 0 014.912-1.782v.109A11.386 11.386 0 0110.09 21M15 9.75a3 3 0 11-6 0 3 3 0 016 0zm-9.75 0a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Leadership</span>
+                        </div>
+                        <div className="space-y-2.5">
+                          {selectedResume.tailored_resume.positions.map((pos: any, idx: number) => (
+                            <div key={idx} className="space-y-0.5">
+                              <div className="flex justify-between items-start gap-2">
+                                <span className="text-[10px] font-bold text-zinc-900 dark:text-white leading-tight">{pos.title}</span>
+                                <span className="text-[8px] text-zinc-450 shrink-0">{pos.duration}</span>
+                              </div>
+                              <p className="text-[9px] text-zinc-450">{pos.organization}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedResume.tailored_resume.certifications && selectedResume.tailored_resume.certifications.length > 0 && (
+                      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm space-y-3">
+                        <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                          <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Certifications</span>
+                        </div>
+                        <div className="space-y-2.5">
+                          {selectedResume.tailored_resume.certifications.map((cert: any, idx: number) => (
+                            <div key={idx} className="space-y-0.5">
+                              <div className="flex justify-between items-start gap-2">
+                                <span className="text-[10px] font-bold text-zinc-900 dark:text-white leading-tight">{cert.name}</span>
+                                {cert.year && <span className="text-[8px] text-zinc-450 shrink-0">{cert.year}</span>}
+                              </div>
+                              <p className="text-[9px] text-zinc-455">{cert.issuer}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

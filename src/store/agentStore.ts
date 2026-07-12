@@ -272,6 +272,7 @@ export const useAgentStore = create<AgentState>()(
 Available projects in this candidate's GitHub:
 ${selectedAnalyses.map((r, i) => `
 ${i + 1}. ${r.repo_name}
+   Complexity: ${r.complexity}
    Summary: ${r.summary}
    Tech: ${Array.isArray(r.techStack) ? r.techStack.join(', ') : r.techStack || ''}
    Domains: ${Array.isArray(r.domains) ? r.domains.join(', ') : r.domains || ''}
@@ -279,6 +280,9 @@ ${i + 1}. ${r.repo_name}
 `).join('\n')}
 
 Job Description: ${jdText}
+
+Ranking Guidance:
+When ranking projects, weigh genuine technical depth and architectural complexity (full-stack integration, real data modeling, external system/hardware integration, backend + frontend combined) more heavily than superficial keyword overlap with the job description. A project marked complexity: 'advanced' or 'intermediate' that touches on relevant domains should generally be preferred over a 'beginner'-complexity project with similar surface-level keyword matches, unless the job description specifically and narrowly requires exactly what the simpler project demonstrates and nothing else. Do not let buzzword-dense highlights alone drive the ranking — evaluate the actual tech stack and domain fit.
 
 Choose the top 3 projects from the list above.
 Return ONLY raw JSON:
