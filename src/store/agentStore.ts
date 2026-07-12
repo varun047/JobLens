@@ -322,16 +322,17 @@ Return ONLY raw JSON:
               const educationYear = baseResume.education[0]?.year ? ` (Graduation/Timing: ${baseResume.education[0].year})` : '';
               const summaryPrompt = `You are an expert resume writer.
 
-Write a 3-line professional summary for this candidate tailored to the job description.
+Write a 3-line professional summary for this candidate tailored to the job description. All three lines must be concatenated into a single string under the "summary" key of the JSON object.
 
-Rules:
-- Line 1: State the candidate's actual current status (e.g., "final-year ${baseResume.education[0]?.degree || 'student'} student" or "professional with X years of experience") based on the profile, explicitly naming the target role/seniority (e.g., "targeting a ${jdIntelligence?.seniority || 'mid'} Software Engineer role"). Do NOT use vague "brings a foundation" language.
-- Line 2: Top 2-3 technical strengths most relevant to JD.
-- Line 3: What they bring to this specific role/company.
+Rules for the summary text:
+1. Line 1: State the candidate's actual current status (e.g., "final-year ${baseResume.education[0]?.degree || 'student'} student" or "professional with X years of experience") based on the profile, explicitly naming the target role/seniority (e.g., "targeting a ${jdIntelligence?.seniority || 'mid'} Software Engineer role"). Do NOT use vague "brings a foundation" language.
+2. Line 2: Top 2-3 technical strengths most relevant to JD.
+3. Line 3: What they bring to this specific role/company.
 
 Content constraints:
 - Do NOT use generic corporate filler phrases. Vague filler phrases like "drive innovation and growth", "dynamic environment", "passionate about", "strong technical foundation", "results-driven" must not appear.
 - Every sentence must contain a specific, concrete detail (a real skill, a real project name, a real status/timeline) — not a vague claim.
+- Keep it under 60 words total. Do NOT use first person (no "I" or "My"). Use third person.
 
 Candidate profile:
 Name: ${baseResume.name}
@@ -345,10 +346,8 @@ Target Seniority Level: ${jdIntelligence?.seniority || 'mid'}
 Target Company Type: ${jdIntelligence?.companyType || 'unknown'}
 Required skills from JD: ${jdIntelligence?.requiredSkills?.join(', ') || ''}
 
-Return ONLY raw JSON matching this schema:
-{ "summary": "Line 1 text. Line 2 text. Line 3 text." }
-
-Keep it under 60 words total. Do NOT use first person (no "I" or "My"). Use third person.`;
+Return ONLY raw JSON matching this schema exactly. The JSON object must contain exactly one key named "summary", and nothing else:
+{ "summary": "Line 1 text. Line 2 text. Line 3 text." }`;
 
               const result2A = await callOllamaAPI(summaryPrompt);
               if (!result2A.summary) {
