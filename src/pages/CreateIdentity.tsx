@@ -93,9 +93,96 @@ export default function CreateIdentity() {
     },
   ];
 
+  const renderWatermark = () => {
+    const commonProps = {
+      className: "w-16 h-16 absolute bottom-2 right-2 opacity-[0.08] pointer-events-none transition-all duration-500",
+      style: { color: 'var(--theme-accent)' }
+    };
+
+    if (selectedTheme === 'emerald') {
+      return (
+        <svg {...commonProps} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 22V10M12 10c0-4 3-7 7-7-4 0-7 3-7 7zM12 12c0-3-3-5-6-5 3 0 6 2 6 5z" />
+        </svg>
+      );
+    } else if (selectedTheme === 'violet') {
+      return (
+        <svg {...commonProps} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <circle cx="12" cy="12" r="5" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18" />
+        </svg>
+      );
+    } else {
+      return (
+        <svg {...commonProps} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499c.172-.436.768-.436.94 0l1.966 4.978a.5.5 0 00.373.344l5.378.782c.477.069.668.658.322.993l-3.89 3.793a.5.5 0 00-.144.442l.918 5.357c.081.476-.418.839-.844.615l-4.81-2.528a.5.5 0 00-.472 0l-4.81 2.528c-.426.223-.925-.139-.844-.615l.918-5.357a.5.5 0 00-.144-.442l-3.89-3.793c-.346-.335-.155-.924.322-.993l5.378-.782a.5.5 0 00.373-.344l1.966-4.978z" />
+        </svg>
+      );
+    }
+  };
+
+  const renderThemeBackground = () => {
+    if (selectedTheme === 'emerald') {
+      return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          {/* Blueprint grid */}
+          <div 
+            className="absolute inset-0 opacity-[0.25] dark:opacity-[0.15]" 
+            style={{
+              backgroundImage: 'var(--theme-bg-pattern)',
+              backgroundSize: '30px 30px',
+            }}
+          />
+          {/* Scanning lines */}
+          <div className="absolute top-0 bottom-0 w-0.5 bg-emerald-500/10 dark:bg-emerald-400/20 blur-[1px] animate-[scan-x_10s_infinite_linear]" />
+          <div className="absolute left-0 right-0 h-0.5 bg-emerald-500/10 dark:bg-emerald-400/20 blur-[1px] animate-[scan-y_15s_infinite_linear]" />
+        </div>
+      );
+    } else if (selectedTheme === 'violet') {
+      return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          {/* Dots background */}
+          <div 
+            className="absolute inset-0 opacity-[0.4] dark:opacity-[0.2]" 
+            style={{
+              backgroundImage: 'var(--theme-bg-pattern)',
+              backgroundSize: '24px 24px',
+            }}
+          />
+          {/* Pulse glow strategist board */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-indigo-500/5 blur-3xl animate-[strategist-pulse_8s_infinite_ease-in-out]" />
+          {/* Floating nodes/stars */}
+          <div className="absolute top-1/4 left-1/3 w-3 h-3 rounded-full bg-indigo-400/20 dark:bg-indigo-300/40 blur-[1px] animate-[float-particle-1_18s_infinite_ease-in-out]" />
+          <div className="absolute bottom-1/3 left-1/4 w-2 h-2 rounded-full bg-purple-400/30 dark:bg-purple-300/50 blur-[1px] animate-[float-particle-2_14s_infinite_ease-in-out]" />
+          <div className="absolute top-1/3 right-1/4 w-2.5 h-2.5 rounded-full bg-violet-400/20 dark:bg-violet-300/40 blur-[1px] animate-[float-particle-3_22s_infinite_ease-in-out]" />
+        </div>
+      );
+    } else {
+      return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          {/* Diagonal stripes */}
+          <div 
+            className="absolute inset-0 opacity-[0.3] dark:opacity-[0.15]" 
+            style={{
+              backgroundImage: 'var(--theme-bg-pattern)',
+            }}
+          />
+          {/* Energetic diagonal streaks */}
+          <div className="absolute h-0.5 bg-gradient-to-r from-transparent via-amber-500/15 dark:via-amber-400/25 to-transparent w-[300px] animate-[streak-diagonal-1_7s_infinite_linear]" />
+          <div className="absolute h-[1px] bg-gradient-to-r from-transparent via-amber-600/10 dark:via-amber-400/20 to-transparent w-[400px] [animation-delay:3.5s] animate-[streak-diagonal-2_9s_infinite_linear]" />
+        </div>
+      );
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-[#080808] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
-      <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="min-h-screen bg-zinc-50 dark:bg-[#080808] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200 relative overflow-hidden">
+      {/* Background Animated Atmosphere */}
+      {renderThemeBackground()}
+      
+      <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
         
         {/* Left Column: Interactive Badge Preview (5 cols) */}
         <div className="lg:col-span-5 flex flex-col items-center justify-center lg:sticky lg:top-8">
@@ -114,7 +201,7 @@ export default function CreateIdentity() {
             <div 
               className="absolute -inset-1 rounded-[var(--theme-border-radius-card)] opacity-30 blur-lg transition duration-500 group-hover:opacity-60"
               style={{
-                background: 'linear-gradient(to bottom, var(--theme-accent), transparent)',
+                background: 'linear-gradient(to bottom, var(--theme-accent), var(--theme-glow-color))',
               }}
             ></div>
 
@@ -132,7 +219,16 @@ export default function CreateIdentity() {
               />
 
               {/* Card Body */}
-              <div className="px-6 pt-4 flex-grow flex flex-col items-center relative">
+              <div 
+                className="px-6 pt-4 flex-grow flex flex-col items-center relative transition-all duration-300"
+                style={{
+                  backgroundImage: 'var(--theme-bg-pattern)',
+                  backgroundSize: '20px 20px',
+                  backgroundRepeat: 'repeat',
+                }}
+              >
+                {/* Watermark Persona Icon */}
+                {renderWatermark()}
                 {/* Logo & Card Type */}
                 <div className="w-full flex justify-between items-center mb-6">
                   <div className="flex items-center gap-1.5">

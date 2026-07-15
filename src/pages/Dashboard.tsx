@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useAuthStore } from '../store/authStore';
 import { useRepoStore } from '../store/repoStore';
+import { useAppThemeStore } from '../store/themeStore';
+import { useHistoryStore } from '../store/historyStore';
 
 const languageColors: Record<string, string> = {
   JavaScript: 'bg-yellow-400',
@@ -23,6 +25,8 @@ const languageColors: Record<string, string> = {
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
+  const { selectedTheme } = useAppThemeStore();
+  const { history, fetchHistory, loading: historyLoading } = useHistoryStore();
   const {
     repos,
     loading,
@@ -62,6 +66,13 @@ export const Dashboard: React.FC = () => {
       fetchRepos(user.provider_token);
     }
   }, [user?.provider_token, repos.length, fetchRepos]);
+
+  // Fetch analysis history for Career Radar and Score Streak widgets
+  useEffect(() => {
+    if (user?.id && (selectedTheme === 'violet' || selectedTheme === 'amber')) {
+      fetchHistory(user.id);
+    }
+  }, [user?.id, selectedTheme, fetchHistory]);
 
   // Trigger background codebase analysis when repos load
   useEffect(() => {
@@ -180,17 +191,151 @@ export const Dashboard: React.FC = () => {
 
   const missingReadmeCount = repos.filter(r => !r.hasReadme).length;
 
+  // Compute Amber streak: count of most-recent consecutive saved analyses ordered by date (history is desc)
+  // where each analysis's ats_score.after is greater than or equal to the previous one's.
+  const getStreak = () => {
+    if (history.length === 0) return 0;
+    let streakCount = 1;
+    for (let i = 0; i < history.length - 1; i++) {
+      const current = history[i];       // more recent
+      const previous = history[i + 1];  // older
+      if (current.ats_score.after >= previous.ats_score.after) {
+        streakCount++;
+      } else {
+        break;
+      }
+    }
+    return streakCount;
+  };
+  const streak = getStreak();
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
       {/* Welcome back heading */}
-      <div className="mb-8 border-b border-zinc-200 dark:border-zinc-800 pb-6">
-        <h1 className="font-heading text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
-          Welcome back, {user?.name ? user.name.split(' ')[0] : 'Developer'}
-        </h1>
-        <p className="font-body text-sm text-zinc-500 dark:text-white/50 mt-1">
-          {repos.length} repositories analyzed · Last updated today
-        </p>
+      <div className="mb-8 border-b border-zinc-200 dark:border-zinc-800 pb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="font-heading text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
+              Welcome back, {user?.name ? user.name.split(' ')[0] : 'Developer'}
+            </h1>
+            {selectedTheme === 'amber' && streak > 0 && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-full text-xs font-bold animate-pulse">
+                <svg className="w-4.5 h-4.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19.467 11.23a.75.75 0 00-.773-.393 4.298 4.298 0 01-3.666-1.815 8.358 8.358 0 00-2.842-2.736.75.75 0 00-1.042.455c-.244.68-.456 1.488-.567 2.455a5.534 5.534 0 01-2.482 4.22c-.655.44-1.2 1.054-1.583 1.777C5.875 16.48 5.75 17.7 6.133 18.847c.725 2.164 2.87 3.653 5.15 3.653h1.433c2.28 0 4.425-1.489 5.15-3.653.645-1.928.163-4.135-1.134-5.836-.615-.805-1.127-1.722-1.265-2.781z" />
+                </svg>
+                <span>{streak} ATS STREAK</span>
+              </div>
+            )}
+          </div>
+          <p className="font-body text-sm text-zinc-500 dark:text-white/50 mt-1">
+            {repos.length} repositories analyzed · Last updated today
+          </p>
+        </div>
       </div>
+
+      {/* Career Radar Widget (Violet theme exclusive) */}
+      {selectedTheme === 'violet' && (
+        <div className="mb-8 bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/30 dark:from-[#13111c] dark:via-[#0f0f0f] dark:to-[#171124] border border-indigo-100 dark:border-indigo-950/60 rounded-2xl p-6 shadow-xl animate-fadeIn">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 dark:bg-indigo-400/10 flex items-center justify-center text-indigo-650 dark:text-indigo-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="3" />
+                <path strokeLinecap="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-heading text-lg font-bold text-zinc-950 dark:text-white">
+                Career Radar
+              </h3>
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 uppercase tracking-widest font-semibold">
+                Strategist Diagnostics
+              </p>
+            </div>
+          </div>
+
+          {historyLoading ? (
+            <div className="flex items-center gap-3 py-4">
+              <div className="w-4 h-4 border-2 border-indigo-250 border-t-indigo-600 rounded-full animate-spin"></div>
+              <span className="text-xs text-zinc-500">Scanning history...</span>
+            </div>
+          ) : history.length === 0 ? (
+            <div className="py-4 text-center">
+              <p className="text-xs font-semibold text-zinc-650 dark:text-zinc-300">
+                No Saved Analyses Yet
+              </p>
+              <p className="text-[10px] text-zinc-500 mt-1 max-w-sm mx-auto">
+                Tailor a resume for a job description and save it to begin tracking your ATS score progress and key missing skills!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+              <div className="p-4 bg-white/60 dark:bg-[#151322] border border-zinc-200/60 dark:border-zinc-850 rounded-xl flex flex-col justify-between shadow-sm">
+                <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                  Total Saved Runs
+                </span>
+                <span className="text-3xl font-extrabold text-zinc-900 dark:text-white mt-2 font-heading">
+                  {history.length}
+                </span>
+                <span className="text-[10px] text-zinc-500 mt-1.5 font-medium">
+                  Analyses saved to archive
+                </span>
+              </div>
+
+              <div className="p-4 bg-white/60 dark:bg-[#151322] border border-zinc-200/60 dark:border-zinc-850 rounded-xl flex flex-col justify-between shadow-sm">
+                <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                  Avg. ATS Improvement
+                </span>
+                <span className="text-3xl font-extrabold text-indigo-650 dark:text-indigo-400 mt-2 font-heading">
+                  +{history.length > 0 
+                    ? Math.round(history.reduce((sum, item) => sum + (item.ats_score.after - item.ats_score.before), 0) / history.length)
+                    : 0} pts
+                </span>
+                <span className="text-[10px] text-zinc-500 mt-1.5 font-medium">
+                  Tailored score vs. original
+                </span>
+              </div>
+
+              <div className="p-4 bg-white/60 dark:bg-[#151322] border border-zinc-200/60 dark:border-zinc-850 rounded-xl flex flex-col justify-between shadow-sm">
+                <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                  Top Missing Skills
+                </span>
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {(() => {
+                    const counts: Record<string, number> = {};
+                    history.forEach(item => {
+                      if (Array.isArray(item.missing_keywords)) {
+                        item.missing_keywords.forEach(kw => {
+                          if (kw) counts[kw.trim()] = (counts[kw.trim()] || 0) + 1;
+                        });
+                      }
+                    });
+                    const topGaps = Object.entries(counts)
+                      .sort((a, b) => b[1] - a[1])
+                      .slice(0, 4)
+                      .map(e => e[0]);
+
+                    if (topGaps.length === 0) {
+                      return <span className="text-[10px] text-zinc-500 italic">No missing skills detected</span>;
+                    }
+                    return topGaps.map((gap, i) => (
+                      <span 
+                        key={i} 
+                        className="text-[9px] font-bold bg-indigo-500/10 dark:bg-indigo-400/10 text-indigo-650 dark:text-indigo-450 px-2 py-0.5 rounded border border-indigo-500/20"
+                      >
+                        {gap}
+                      </span>
+                    ));
+                  })()}
+                </div>
+                <span className="text-[10px] text-zinc-500 mt-1.5 block font-medium">
+                  Most recurring JD keyword gaps
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Top Banner / Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">

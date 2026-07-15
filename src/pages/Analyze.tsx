@@ -11,6 +11,8 @@ import { extractJobFromUrl, type ExtractedJob } from '../lib/jobBoardExtractor';
 import { researchCompany, type CompanyInsight } from '../lib/companyResearch';
 import { useTemplateStore } from '../store/templateStore';
 import { getBulletBadges } from '../lib/validateResume';
+import { useAppThemeStore } from '../store/themeStore';
+import { useHistoryStore } from '../store/historyStore';
 
 // ---------------------------------------------------------------------------
 // Small presentational helpers
@@ -189,7 +191,16 @@ const BulletDiffRow = ({
 
 export const Analyze: React.FC = () => {
   const { user } = useAuthStore();
+  const { selectedTheme, focusMode, setFocusMode } = useAppThemeStore();
+  const { history, fetchHistory } = useHistoryStore();
   const { repos, loading: reposLoading, fetchRepos, repoAnalyses, analyzeAllRepos } = useRepoStore();
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchHistory(user.id);
+    }
+  }, [user?.id, fetchHistory]);
+
   const {
     resume: baseResume,
     loading: resumeLoading,
@@ -360,6 +371,13 @@ export const Analyze: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [toastMessage]);
+
+  // Reset focus mode when navigating away/unmounting
+  useEffect(() => {
+    return () => {
+      setFocusMode(false);
+    };
+  }, [setFocusMode]);
 
   useEffect(() => {
     if (showSaveModal) {
@@ -910,15 +928,68 @@ export const Analyze: React.FC = () => {
     );
   };
 
+  const renderConfetti = () => {
+    if (selectedTheme !== 'amber' || !atsScore || agentStatus !== 'done') return null;
+
+    // Check if this is a personal best
+    const previousBestScore = history.length > 0 
+      ? Math.max(...history.map(h => h.ats_score?.after || 0)) 
+      : 0;
+
+    if (atsScore.after <= previousBestScore) return null;
+
+    const colors = ['#f59e0b', '#fbbf24', '#fcd34d', '#fef08a', '#3b82f6', '#ec4899'];
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
+        {Array.from({ length: 16 }).map((_, i) => {
+          const color = colors[i % colors.length];
+          const angle = (i * 360) / 16;
+          const angleRad = (angle * Math.PI) / 180;
+          const distance = 40 + Math.random() * 50;
+          const x = Math.round(Math.cos(angleRad) * distance);
+          const y = Math.round(Math.sin(angleRad) * distance);
+          const delay = Math.random() * 200;
+          return (
+            <div
+              key={i}
+              className="absolute w-2 h-2 rounded-sm animate-[confetti-pop_1.2s_cubic-bezier(0.25,1,0.5,1)_forwards] opacity-0"
+              style={{
+                left: '50%',
+                top: '50%',
+                backgroundColor: color,
+                '--x': `${x}px`,
+                '--y': `${y}px`,
+                animationDelay: `${delay}ms`,
+              } as React.CSSProperties}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderAtsTab = () => {
     if (!atsScore) return null;
     return (
       <div className="space-y-5 animate-fadeIn">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm relative">
+          {/* Confetti burst on personal best */}
+          {renderConfetti()}
+
           <div className="flex justify-around items-center pb-4">
             <CircularProgress score={atsScore.before} colorClass="text-zinc-400 dark:text-zinc-500" label="Original" size={80} />
             <div className="text-xl text-zinc-300 dark:text-zinc-700 font-light">→</div>
-            <CircularProgress score={atsScore.after} colorClass="text-emerald-500 dark:text-emerald-450" label="Tailored" size={80} />
+            
+            <div className="relative">
+              <CircularProgress score={atsScore.after} colorClass="text-emerald-500 dark:text-emerald-450" label="Tailored" size={80} />
+              {selectedTheme === 'emerald' && atsScore.after > atsScore.before && (
+                <div className="absolute -top-3 -right-3 w-8 h-8 text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-250 dark:border-emerald-900/30 rounded-full flex items-center justify-center shadow-md animate-[sprout-grow_1.5s_cubic-bezier(0.34,1.56,0.64,1)_forwards] origin-bottom-left z-10 pointer-events-none">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 22V10M12 10c0-4 3-7 7-7-4 0-7 3-7 7zM12 12c0-3-3-5-6-5 3 0 6 2 6 5z" />
+                  </svg>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1138,7 +1209,7 @@ export const Analyze: React.FC = () => {
   const hasResults = !!(tailoredResume && agentStatus === 'done');
 
   return (
-    <div className="mx-auto px-6 py-8 max-w-5xl">
+    <div className={`mx-auto px-6 py-8 transition-all duration-300 ${focusMode ? 'max-w-7xl' : 'max-w-5xl'}`}>
       {/* Thin top progress bar while running */}
       <div
         className="fixed top-0 left-0 h-0.5 bg-emerald-500 z-[9999] transition-all duration-500 ease-out"
@@ -1183,6 +1254,26 @@ export const Analyze: React.FC = () => {
               </span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {selectedTheme === 'emerald' && (
+                <button
+                  type="button"
+                  onClick={() => setFocusMode(!focusMode)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1.5 active:scale-95 border ${
+                    focusMode
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
+                      : 'bg-zinc-50 dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 border-zinc-250 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    {focusMode ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3 3m12 6V4.5M15 9h4.5M15 9l6-6M9 15v4.5M9 15H4.5M9 15l-6 6m12-6v4.5M15 15h4.5M15 15l6 6" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75v4.5m0-4.5h-4.5m4.5 0L15 9m5.25 11.25v-4.5m0 4.5h-4.5m4.5 0l-6-6" />
+                    )}
+                  </svg>
+                  {focusMode ? 'Focus: ON' : 'Focus Mode'}
+                </button>
+              )}
               <button
                 onClick={() => setShowSaveModal(true)}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1.5 active:scale-95"
@@ -1338,8 +1429,30 @@ export const Analyze: React.FC = () => {
           Full width and focused, not squeezed beside the input form. */}
       {isRunning && (
         <div className="flex flex-col items-center justify-center py-10">
-          <div className="w-full max-w-xl bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border border-zinc-200 dark:border-zinc-900 rounded-2xl p-7 flex flex-col gap-6 animate-ai-glow shadow-md">
-            <div className="flex items-center gap-4">
+          <div className="w-full max-w-xl bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border border-zinc-200 dark:border-zinc-900 rounded-2xl p-7 flex flex-col gap-6 animate-ai-glow shadow-md relative overflow-hidden">
+            {selectedTheme === 'violet' && (
+              <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none opacity-[0.12] dark:opacity-[0.18]">
+                {/* Constellation floating group */}
+                <svg className="w-full h-full text-indigo-500 animate-[constellation-float_20s_infinite_ease-in-out]" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {/* Constellation paths */}
+                  <line x1="15" y1="20" x2="35" y2="40" stroke="currentColor" strokeWidth="0.5" />
+                  <line x1="35" y1="40" x2="25" y2="70" stroke="currentColor" strokeWidth="0.5" />
+                  <line x1="35" y1="40" x2="70" y2="35" stroke="currentColor" strokeWidth="0.5" />
+                  <line x1="70" y1="35" x2="80" y2="65" stroke="currentColor" strokeWidth="0.5" />
+                  <line x1="25" y1="70" x2="55" y2="80" stroke="currentColor" strokeWidth="0.5" />
+                  <line x1="70" y1="35" x2="55" y2="80" stroke="currentColor" strokeWidth="0.5" />
+
+                  {/* Constellation dots */}
+                  <circle cx="15" cy="20" r="1.5" fill="currentColor" />
+                  <circle cx="35" cy="40" r="2.5" fill="currentColor" className="animate-pulse" />
+                  <circle cx="25" cy="70" r="1.5" fill="currentColor" />
+                  <circle cx="70" cy="35" r="2" fill="currentColor" className="animate-pulse" />
+                  <circle cx="80" cy="65" r="1.5" fill="currentColor" />
+                  <circle cx="55" cy="80" r="2" fill="currentColor" />
+                </svg>
+              </div>
+            )}
+            <div className="flex items-center gap-4 relative z-10">
               <div className="relative w-12 h-14 bg-zinc-100 dark:bg-zinc-900 rounded-lg border border-zinc-250 dark:border-zinc-800 flex items-center justify-center shadow-sm shrink-0">
                 <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-zinc-50 dark:bg-[#0f0f0f] border-b border-l border-zinc-250 dark:border-zinc-800 rounded-bl-md" />
                 <span className="absolute bottom-1 px-1 py-0.5 rounded text-[8px] font-black bg-zinc-900 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-400 border border-zinc-700/50 tracking-wider">AI</span>
@@ -1367,7 +1480,7 @@ export const Analyze: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 relative z-10">
               <div className="flex justify-between items-center text-xs font-bold">
                 <span className="text-zinc-650 dark:text-zinc-300">Overall progress</span>
                 <span className="text-indigo-650 dark:text-indigo-400 tabular-nums">{progressPercent}%</span>
@@ -1382,7 +1495,7 @@ export const Analyze: React.FC = () => {
               </div>
             </div>
 
-            <div className="border-t border-zinc-150 dark:border-zinc-900/60 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="border-t border-zinc-150 dark:border-zinc-900/60 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-10">
               {renderStep(0, 'Understanding JD')}
               {renderStep(1, 'Ranking projects')}
               {renderStep(2, 'Rewriting resume')}

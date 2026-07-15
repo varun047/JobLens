@@ -71,9 +71,19 @@ export const History: React.FC = () => {
         `}
       >
         <div className="sticky top-0 bg-white dark:bg-[#0f0f0f] border-b border-zinc-200 dark:border-zinc-800 p-6 z-10">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-            Analysis History
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
+              Analysis History
+            </h2>
+            {selectedTheme === 'amber' && streak > 0 && (
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-full text-[10px] font-bold animate-pulse">
+                <svg className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19.467 11.23a.75.75 0 00-.773-.393 4.298 4.298 0 01-3.666-1.815 8.358 8.358 0 00-2.842-2.736.75.75 0 00-1.042.455c-.244.68-.456 1.488-.567 2.455a5.534 5.534 0 01-2.482 4.22c-.655.44-1.2 1.054-1.583 1.777C5.875 16.48 5.75 17.7 6.133 18.847c.725 2.164 2.87 3.653 5.15 3.653h1.433c2.28 0 4.425-1.489 5.15-3.653.645-1.928.163-4.135-1.134-5.836-.615-.805-1.127-1.722-1.265-2.781z" />
+                </svg>
+                <span>{streak} 🔥</span>
+              </div>
+            )}
+          </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
             {analyses.length} analyses saved
           </p>

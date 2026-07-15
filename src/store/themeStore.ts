@@ -9,6 +9,8 @@ interface AppThemeState {
   identityTagline: string;
   identityCompleted: boolean;
   identityLoaded: boolean;
+  focusMode: boolean;
+  setFocusMode: (mode: boolean) => void;
   setTheme: (theme: AppTheme) => void;
   setIdentity: (title: string, tagline: string) => void;
   setIdentityCompleted: (completed: boolean) => void;
@@ -25,6 +27,11 @@ export const useAppThemeStore = create<AppThemeState>((set) => ({
   identityTagline: '',
   identityCompleted: false,
   identityLoaded: false,
+  focusMode: false,
+
+  setFocusMode: (mode) => {
+    set({ focusMode: mode });
+  },
 
   setTheme: (theme) => {
     set({ selectedTheme: theme });
