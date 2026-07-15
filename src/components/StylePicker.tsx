@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAppThemeStore } from '../store/themeStore';
 import type { ResumeStyle } from '../lib/generatePDF';
 import type { CompanyInsight } from '../lib/companyResearch';
 
@@ -54,6 +55,7 @@ export const StylePicker: React.FC<StylePickerProps> = ({
   onGenerate,
   generating = false
 }) => {
+  const { selectedTheme } = useAppThemeStore();
   return (
     <div className="bg-white dark:bg-[#121212] border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-md space-y-6 animate-fadeIn">
       <div>
@@ -67,20 +69,20 @@ export const StylePicker: React.FC<StylePickerProps> = ({
 
       {researchingCompany && (
         <div className="flex flex-col items-center justify-center py-6 space-y-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-150 dark:border-zinc-900 rounded-lg animate-pulse">
-          <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-5 h-5 border-2 border-[var(--theme-accent)] border-t-transparent rounded-full animate-spin"></div>
           <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            Researching hiring style at <span className="font-semibold text-emerald-600 dark:text-emerald-400">{company}</span>...
+            Researching hiring style at <span className="font-semibold text-[var(--theme-accent)]">{company}</span>...
           </span>
         </div>
       )}
 
       {!researchingCompany && companyInsight && (
-        <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-250 dark:border-emerald-900/40 rounded-lg p-4 space-y-2">
-          <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400 font-semibold text-xs">
+        <div className="bg-[var(--theme-accent-tint)] border border-[var(--theme-accent-tint)] rounded-lg p-4 space-y-2">
+          <div className="flex items-center gap-2 text-[var(--theme-accent-text)] font-semibold text-xs">
             <span>✨</span> AI Recommendation
           </div>
           <p className="text-xs text-zinc-700 dark:text-zinc-350 leading-relaxed font-medium">
-            We researched <span className="font-semibold">{company}</span> ({companyInsight.size} {companyInsight.industry} company) and recommend the <span className="text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wide">{companyInsight.recommendedStyle}</span> style for a <span className="font-semibold">{jobTitle}</span> role there.
+            We researched <span className="font-semibold">{company}</span> ({companyInsight.size} {companyInsight.industry} company) and recommend the <span className="text-[var(--theme-accent-text)] font-bold uppercase tracking-wide">{companyInsight.recommendedStyle}</span> style for a <span className="font-semibold">{jobTitle}</span> role there.
           </p>
           {companyInsight.reason && (
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 italic">
@@ -107,7 +109,7 @@ export const StylePicker: React.FC<StylePickerProps> = ({
                 }`}
             >
               {isRecommended && (
-                <div className="absolute -top-2 -right-2 bg-emerald-600 dark:bg-emerald-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm z-10 animate-bounce">
+                <div className="absolute -top-2 -right-2 bg-[var(--theme-accent)] text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm z-10 animate-bounce">
                   ★ Recommended
                 </div>
               )}

@@ -753,7 +753,7 @@ export const Analyze: React.FC = () => {
               <div key={idx} className="p-3 bg-zinc-50 dark:bg-zinc-955 border border-zinc-155 dark:border-zinc-855 rounded-lg space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-zinc-905 dark:text-white truncate">{proj.name}</span>
-                  <span className="shrink-0 bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30 px-1.5 py-0.5 rounded-full text-[9px] font-bold">
+                  <span className="shrink-0 bg-[var(--theme-accent-tint)] text-[var(--theme-accent-text)] border border-[var(--theme-accent-tint)] px-1.5 py-0.5 rounded-full text-[9px] font-bold">
                     {proj.relevanceScore < 1 ? Math.round(proj.relevanceScore * 100) : Math.round(proj.relevanceScore)}%
                   </span>
                 </div>
@@ -1124,18 +1124,18 @@ export const Analyze: React.FC = () => {
     <div className="space-y-5 animate-fadeIn">
       {researchingCompany && (
         <div className="flex items-center gap-3 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
-          <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-[var(--theme-accent)] border-t-transparent rounded-full animate-spin" />
           <p className="text-zinc-600 dark:text-zinc-400 text-sm">Researching {selectedCompany} culture and style preferences...</p>
         </div>
       )}
 
       {companyInsight && !researchingCompany && (
-        <div className="p-5 bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-200 dark:border-emerald-900/50 rounded-xl">
-          <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-2">{selectedCompany} style recommendation</p>
-          <p className="text-emerald-800 dark:text-emerald-200 text-sm mb-3">{companyInsight.reason}</p>
+        <div className="p-5 bg-[var(--theme-accent-tint)] border border-[var(--theme-accent-tint)] rounded-xl">
+          <p className="text-xs font-bold text-[var(--theme-accent-text)] uppercase tracking-wider mb-2">{selectedCompany} style recommendation</p>
+          <p className="text-zinc-800 dark:text-zinc-200 text-sm mb-3">{companyInsight.reason}</p>
           <div className="space-y-1">
             {companyInsight.tips?.map((tip, i) => (
-              <p key={i} className="text-xs text-emerald-700 dark:text-emerald-300 flex gap-2"><span>→</span><span>{tip}</span></p>
+              <p key={i} className="text-xs text-[var(--theme-accent-text)] flex gap-2"><span>→</span><span>{tip}</span></p>
             ))}
           </div>
         </div>
@@ -1149,11 +1149,11 @@ export const Analyze: React.FC = () => {
               key={style.id}
               onClick={() => setSelectedStyle(style.id as ResumeStyle)}
               className={`relative p-4 rounded-xl border text-left transition-all ${
-                selectedStyle === style.id ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-955/10' : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 hover:border-zinc-350 dark:hover:border-zinc-700'
+                selectedStyle === style.id ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-tint)]' : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 hover:border-zinc-350 dark:hover:border-zinc-700'
               }`}
             >
               {style.id === companyInsight?.recommendedStyle && (
-                <span className="absolute -top-2 -right-2 bg-emerald-600 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">Best fit</span>
+                <span className="absolute -top-2 -right-2 bg-[var(--theme-accent)] text-white text-[9px] px-2 py-0.5 rounded-full font-bold">Best fit</span>
               )}
               <p className="font-bold text-zinc-900 dark:text-white text-sm mb-1">{style.name}</p>
               <p className="text-zinc-500 dark:text-zinc-400 text-xs mb-2">{style.desc}</p>
@@ -1166,7 +1166,7 @@ export const Analyze: React.FC = () => {
               key={style.id}
               onClick={() => setSelectedStyle(style.id)}
               className={`relative p-4 rounded-xl border text-left cursor-pointer transition-all ${
-                selectedStyle === style.id ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-955/10' : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 hover:border-zinc-350 dark:hover:border-zinc-700'
+                selectedStyle === style.id ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-tint)]' : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 hover:border-zinc-350 dark:hover:border-zinc-700'
               }`}
             >
               <p className="font-bold text-zinc-900 dark:text-white text-sm mb-1 truncate">{style.name}</p>
@@ -1212,7 +1212,7 @@ export const Analyze: React.FC = () => {
     <div className={`mx-auto px-6 py-8 transition-all duration-300 ${focusMode ? 'max-w-7xl' : 'max-w-5xl'}`}>
       {/* Thin top progress bar while running */}
       <div
-        className="fixed top-0 left-0 h-0.5 bg-emerald-500 z-[9999] transition-all duration-500 ease-out"
+        className="fixed top-0 left-0 h-0.5 bg-[var(--theme-accent)] z-[9999] transition-all duration-500 ease-out"
         style={{ width: isRunning ? `${progressPercent}%` : '0%' }}
       />
 
@@ -1276,7 +1276,7 @@ export const Analyze: React.FC = () => {
               )}
               <button
                 onClick={() => setShowSaveModal(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1.5 active:scale-95"
+                className="bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1.5 active:scale-95"
               >
                 Save
               </button>
@@ -1331,7 +1331,7 @@ export const Analyze: React.FC = () => {
                   type="button"
                   onClick={handleExtract}
                   disabled={isRunning || extracting || !jobUrl.trim()}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap active:scale-95"
+                  className="px-3.5 py-2 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap active:scale-95"
                 >
                   {extracting ? 'Extracting...' : 'Extract JD'}
                 </button>
@@ -1390,7 +1390,7 @@ export const Analyze: React.FC = () => {
                   <p className="text-xs font-bold text-zinc-900 dark:text-white">{selectedRepoNames.size} of {repos.length} selected</p>
                   <p className="text-[9px] text-zinc-500 mt-0.5">Click to manage or search codebases</p>
                 </div>
-                <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold hover:underline">Manage →</span>
+                <span className="text-[var(--theme-accent)] text-[10px] font-bold hover:underline">Manage →</span>
               </div>
             </div>
 
@@ -1562,12 +1562,12 @@ export const Analyze: React.FC = () => {
                     key={repo.name} onClick={() => toggleRepoSelected(repo.name)}
                     className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
                       selectedRepoNames.has(repo.name)
-                        ? 'bg-emerald-50/10 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-900/60 shadow-sm'
+                        ? 'bg-[var(--theme-accent-tint)] border-[var(--theme-accent-tint)] shadow-sm'
                         : 'bg-zinc-50 dark:bg-[#181818]/30 border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-800'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <input type="checkbox" checked={selectedRepoNames.has(repo.name)} readOnly className="rounded border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-955 text-emerald-600 focus:ring-0 focus:ring-offset-0 pointer-events-none" />
+                      <input type="checkbox" checked={selectedRepoNames.has(repo.name)} readOnly className="rounded border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-955 text-[var(--theme-accent)] focus:ring-0 focus:ring-offset-0 pointer-events-none" />
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{repo.name}</p>
                         <p className="text-[10px] text-zinc-500 dark:text-zinc-450 mt-0.5 leading-relaxed">{repo.description || 'No description provided'}</p>
@@ -1599,7 +1599,7 @@ export const Analyze: React.FC = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => handleResume(showDraftModal)} disabled={isRepoDataLoading}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                className="flex-1 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
               >
                 {isRepoDataLoading ? (<><div className="w-3.5 h-3.5 border border-white/20 border-t-white rounded-full animate-spin"></div>Loading data...</>) : 'Resume analysis'}
               </button>
@@ -1628,7 +1628,7 @@ export const Analyze: React.FC = () => {
               <button
                 type="button" onClick={() => handleSaveAnalysis(saveCompany, saveJobTitle)}
                 disabled={!saveCompany.trim() || !saveJobTitle.trim() || savingAnalysis}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+                className="flex-1 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] disabled:opacity-50 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors"
               >
                 {savingAnalysis ? 'Saving...' : 'Confirm & save'}
               </button>

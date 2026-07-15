@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { useResumeStore } from '../store/resumeStore';
 import type { ParsedResume, Experience, Project, Education, Position, Certification } from '../types';
 import { parseResume, extractAchievementsAndPositions } from '../lib/parseResume';
+import { useAppThemeStore } from '../store/themeStore';
 
 // Set up PDFJS worker using unpkg CDN
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -13,6 +14,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.vers
 
 export const Onboarding: React.FC = () => {
   const { user } = useAuthStore();
+  const { selectedTheme } = useAppThemeStore();
   const {
     resume,
     rawText,
@@ -554,10 +556,10 @@ export const Onboarding: React.FC = () => {
           {/* Contact Details */}
           <div className="glass-card relative overflow-hidden rounded-xl p-6 space-y-4 shadow-sm hover:shadow-md transition-all duration-300">
             {/* Top accent colorful gradient border */}
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-[var(--theme-accent)]" />
             
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl shadow-inner shadow-emerald-500/5">
+              <div className="p-2.5 bg-[var(--theme-accent-tint)] text-[var(--theme-accent-text)] rounded-xl shadow-inner">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
@@ -579,7 +581,7 @@ export const Onboarding: React.FC = () => {
                   type="text"
                   value={editedResume.name}
                   onChange={(e) => handleContactChange('name', e.target.value)}
-                  className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-emerald-500/10 rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-[var(--theme-accent)] focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-[var(--theme-accent-tint)] rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
                 />
               </div>
               <div className="space-y-1">
@@ -590,7 +592,7 @@ export const Onboarding: React.FC = () => {
                   type="email"
                   value={editedResume.email}
                   onChange={(e) => handleContactChange('email', e.target.value)}
-                  className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-emerald-500/10 rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-[var(--theme-accent)] focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-[var(--theme-accent-tint)] rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
                 />
               </div>
               <div className="space-y-1">
@@ -601,7 +603,7 @@ export const Onboarding: React.FC = () => {
                   type="text"
                   value={editedResume.phone}
                   onChange={(e) => handleContactChange('phone', e.target.value)}
-                  className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-emerald-500/10 rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-[var(--theme-accent)] focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-[var(--theme-accent-tint)] rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
                 />
               </div>
             </div>
@@ -614,7 +616,7 @@ export const Onboarding: React.FC = () => {
                 value={editedResume.skills.join(', ')}
                 onChange={(e) => handleSkillsChange(e.target.value)}
                 placeholder="e.g. React, TypeScript, Python, AWS"
-                className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-emerald-500/10 rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
+                className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-[var(--theme-accent)] focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-[var(--theme-accent-tint)] rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
@@ -627,7 +629,7 @@ export const Onboarding: React.FC = () => {
                   value={editedResume.linkedin || ''}
                   onChange={(e) => handleContactChange('linkedin', e.target.value)}
                   placeholder="e.g. https://linkedin.com/in/username"
-                  className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-emerald-500/10 rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-[var(--theme-accent)] focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-[var(--theme-accent-tint)] rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
                 />
               </div>
               <div className="space-y-1">
@@ -639,7 +641,7 @@ export const Onboarding: React.FC = () => {
                   value={editedResume.github || ''}
                   onChange={(e) => handleContactChange('github', e.target.value)}
                   placeholder="e.g. https://github.com/username"
-                  className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-emerald-500/10 rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-[var(--theme-accent)] focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-[var(--theme-accent-tint)] rounded-lg px-3.5 py-2 text-xs text-zinc-850 dark:text-zinc-100 focus:outline-none transition-all duration-200"
                 />
               </div>
             </div>
@@ -1107,11 +1109,11 @@ export const Onboarding: React.FC = () => {
 
           {/* Certifications */}
           <div className="glass-card relative overflow-hidden rounded-xl p-6 space-y-6 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500" />
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-[var(--theme-accent)]" />
             
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl shadow-inner shadow-emerald-500/5">
+                <div className="p-2.5 bg-[var(--theme-accent-tint)] text-[var(--theme-accent-text)] rounded-xl shadow-inner">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
@@ -1126,7 +1128,7 @@ export const Onboarding: React.FC = () => {
               <button
                 type="button"
                 onClick={addCertification}
-                className="text-[10px] text-emerald-600 hover:text-white dark:text-emerald-400 dark:hover:text-white font-bold border border-emerald-250 dark:border-emerald-900/50 hover:border-emerald-500 dark:hover:border-emerald-500 px-3 py-1.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-955/20 hover:bg-emerald-500 dark:hover:bg-emerald-600 transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1"
+                className="text-[10px] text-[var(--theme-accent-text)] hover:text-white font-bold border border-[var(--theme-accent-tint)] hover:border-[var(--theme-accent)] px-3 py-1.5 rounded-lg bg-[var(--theme-accent-tint)] hover:bg-[var(--theme-accent)] transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -1162,7 +1164,7 @@ export const Onboarding: React.FC = () => {
                         onChange={(e) =>
                           handleCertificationChange(idx, 'name', e.target.value)
                         }
-                        className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-emerald-500/10 rounded-lg px-3.5 py-2 text-xs text-zinc-855 dark:text-zinc-100 focus:outline-none transition-all duration-200"
+                        className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-[var(--theme-accent)] focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-[var(--theme-accent-tint)] rounded-lg px-3.5 py-2 text-xs text-zinc-855 dark:text-zinc-100 focus:outline-none transition-all duration-200"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1175,7 +1177,7 @@ export const Onboarding: React.FC = () => {
                         onChange={(e) =>
                           handleCertificationChange(idx, 'issuer', e.target.value)
                         }
-                        className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-emerald-500/10 rounded-lg px-3.5 py-2 text-xs text-zinc-855 dark:text-zinc-100 focus:outline-none transition-all duration-200"
+                        className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-[var(--theme-accent)] focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-[var(--theme-accent-tint)] rounded-lg px-3.5 py-2 text-xs text-zinc-855 dark:text-zinc-100 focus:outline-none transition-all duration-200"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1188,7 +1190,7 @@ export const Onboarding: React.FC = () => {
                         onChange={(e) =>
                           handleCertificationChange(idx, 'year', e.target.value)
                         }
-                        className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-emerald-500/10 rounded-lg px-3.5 py-2 text-xs text-zinc-855 dark:text-zinc-100 focus:outline-none transition-all duration-200"
+                        className="w-full bg-zinc-50/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-[var(--theme-accent)] focus:bg-white dark:focus:bg-[#161616] focus:ring-2 focus:ring-[var(--theme-accent-tint)] rounded-lg px-3.5 py-2 text-xs text-zinc-855 dark:text-zinc-100 focus:outline-none transition-all duration-200"
                       />
                     </div>
                   </div>
@@ -1208,7 +1210,7 @@ export const Onboarding: React.FC = () => {
             <button
               onClick={handleSave}
               disabled={resumeLoading}
-              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white disabled:opacity-50 text-xs font-bold px-6 py-2.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-md hover:shadow-emerald-500/10 active:scale-95 border-0"
+              className="bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white disabled:opacity-50 text-xs font-bold px-6 py-2.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-md active:scale-95 border-0"
             >
               {resumeLoading && (
                 <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -1284,7 +1286,7 @@ export const Onboarding: React.FC = () => {
                     onChange={(e) => setImportText(e.target.value)}
                     placeholder="Paste the relevant sections from your other resume here..."
                     rows={6}
-                    className="w-full bg-zinc-55/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 rounded-lg p-3 text-xs text-zinc-800 dark:text-zinc-350 focus:outline-none transition-colors"
+                    className="w-full bg-zinc-55/50 dark:bg-[#161616]/40 border border-zinc-200 dark:border-zinc-800 focus:border-[var(--theme-accent)] rounded-lg p-3 text-xs text-zinc-800 dark:text-zinc-350 focus:outline-none transition-colors"
                   />
                 </div>
 
@@ -1293,7 +1295,7 @@ export const Onboarding: React.FC = () => {
                     type="button"
                     onClick={() => handleImportTextSubmit(importText)}
                     disabled={isImportParsing || !importText.trim()}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] disabled:opacity-50 text-white px-4 py-2.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors flex items-center justify-center gap-2"
                   >
                     {isImportParsing && (
                       <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -1452,7 +1454,7 @@ export const Onboarding: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleConfirmImport}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-md"
+                    className="flex-1 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white px-4 py-2.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-md"
                   >
                     Confirm & Merge
                   </button>

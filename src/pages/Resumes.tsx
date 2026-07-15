@@ -263,7 +263,7 @@ export const Resumes: React.FC = () => {
                 {/* Center Page (main paper preview, slides up straight) */}
                 <div className="w-[66%] h-[82%] absolute bottom-10 left-[17%] bg-white dark:bg-zinc-950 rounded-lg shadow-lg border border-zinc-300/60 dark:border-zinc-800/80 transition-all duration-500 transform group-hover:-translate-y-18 group-hover:scale-105 z-15 flex flex-col p-3 space-y-1.5 overflow-hidden">
                   <div className="flex items-center gap-1.5 pb-1 border-b border-zinc-100 dark:border-zinc-900">
-                    <div className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[7px] font-black">
+                    <div className="w-3.5 h-3.5 rounded-full bg-[var(--theme-accent-tint)] text-[var(--theme-accent-text)] flex items-center justify-center text-[7px] font-black">
                       ✓
                     </div>
                     <div className="w-16 h-1 bg-zinc-300 dark:bg-zinc-650 rounded" />
@@ -272,7 +272,7 @@ export const Resumes: React.FC = () => {
                   <div className="w-[85%] h-0.5 bg-zinc-150 dark:bg-zinc-900 rounded" />
                   <div className="w-[90%] h-0.5 bg-zinc-150 dark:bg-zinc-900 rounded" />
                   <div className="pt-1 space-y-1">
-                    <div className="w-10 h-0.5 bg-emerald-500/30 dark:bg-emerald-400/20 rounded" />
+                    <div className="w-10 h-0.5 bg-[var(--theme-accent-tint)] rounded" />
                     <div className="w-[75%] h-0.5 bg-zinc-150 dark:bg-zinc-900 rounded" />
                   </div>
                   <div className="w-[70%] h-0.5 bg-zinc-150 dark:bg-zinc-900 rounded" />
@@ -322,8 +322,7 @@ export const Resumes: React.FC = () => {
                         await downloadResumePDF(analysis.tailored_resume, filename)
                       }}
                       className="flex-1 text-[10px] font-extrabold px-2 py-1.5 rounded-lg cursor-pointer
-                                 bg-emerald-600 dark:bg-emerald-700 text-white
-                                 hover:bg-emerald-700 dark:hover:bg-emerald-800 border border-emerald-500/20 transition-colors shadow-sm"
+                                 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white border-transparent transition-colors shadow-sm"
                     >
                       ⬇ PDF
                     </button>
@@ -448,7 +447,7 @@ export const Resumes: React.FC = () => {
                   <button
                     onClick={() => handleUseAsBase(analysis)}
                     className="text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer
-                               bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-sm"
+                               bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white transition-colors shadow-sm"
                   >
                     Use as Base
                   </button>
@@ -600,7 +599,7 @@ export const Resumes: React.FC = () => {
                     handleUseAsBase(selectedResume)
                     setSelectedResume(null)
                   }}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white 
+                  className="bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white 
                              px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-sm"
                 >
                   ✓ Use as Base Resume

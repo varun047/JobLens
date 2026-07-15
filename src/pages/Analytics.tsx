@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useHistoryStore } from '../store/historyStore';
+import { useAppThemeStore } from '../store/themeStore';
 import {
   ResponsiveContainer,
   LineChart,
@@ -20,7 +21,18 @@ import {
 
 export const Analytics: React.FC = () => {
   const { user } = useAuthStore();
+  const { selectedTheme } = useAppThemeStore();
   const { history, fetchHistory, loading } = useHistoryStore();
+
+  const getThemeChartColor = (theme: string) => {
+    switch (theme) {
+      case 'violet': return '#6366F1';
+      case 'amber': return '#F59E0B';
+      case 'emerald':
+      default:
+        return '#10B981';
+    }
+  };
 
   useEffect(() => {
     if (user?.id) {
@@ -255,7 +267,7 @@ export const Analytics: React.FC = () => {
                 <Line
                   type="monotone"
                   dataKey="After"
-                  stroke="#10B981"
+                  stroke={getThemeChartColor(selectedTheme)}
                   strokeWidth={2}
                   activeDot={{ r: 6 }}
                 />

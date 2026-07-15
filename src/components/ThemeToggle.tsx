@@ -46,7 +46,7 @@ export function ThemeToggle({ variant = 'default' }: { variant?: 'default' | 'si
         <button
           onClick={() => setTheme('dark')}
           className={`z-10 w-11 h-full flex items-center justify-center rounded-full transition-colors duration-300 cursor-pointer ${
-            isDark ? 'text-emerald-400 font-bold' : 'text-zinc-400 hover:text-zinc-200'
+            isDark ? 'text-[var(--theme-accent)] font-bold' : 'text-zinc-400 hover:text-zinc-200'
           }`}
           title="Dark Mode"
         >

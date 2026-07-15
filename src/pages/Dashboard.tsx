@@ -399,7 +399,7 @@ export const Dashboard: React.FC = () => {
             </div>
             <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
               <div
-                className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+                className="bg-[var(--theme-accent)] h-1.5 rounded-full transition-all duration-300"
                 style={{
                   width: `${Math.round(
                     (analysisProgress.current / (analysisProgress.total || 1)) * 100
@@ -412,23 +412,23 @@ export const Dashboard: React.FC = () => {
       )}
 
       {analysisStatus === 'done' && (
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-xl gap-2 shadow-sm animate-fadeIn">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-[var(--theme-accent-tint)] border border-[var(--theme-accent-tint)] rounded-xl gap-2 shadow-sm animate-fadeIn">
           <div className="flex flex-wrap items-center gap-2">
             <span className="flex h-2.5 w-2.5 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--theme-accent)] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--theme-accent)]"></span>
             </span>
-            <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400">
+            <span className="text-xs font-bold text-[var(--theme-accent-text)]">
               {repos.length} repositories analyzed and ready
             </span>
-            <span className="hidden sm:inline text-emerald-200 dark:text-emerald-900/30">|</span>
+            <span className="hidden sm:inline opacity-30 text-[var(--theme-accent-text)]">|</span>
             <span className="text-[10px] text-zinc-550 dark:text-zinc-400 font-medium">
               Last updated: {lastUpdatedText()}
             </span>
           </div>
           <button
             onClick={() => user?.id && reAnalyzeAllRepos(user.id)}
-            className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-350 transition-colors cursor-pointer bg-white dark:bg-emerald-950/40 border border-emerald-250 dark:border-emerald-900/40 px-2.5 py-1 rounded-lg shadow-sm"
+            className="text-[10px] font-bold text-[var(--theme-accent-text)] hover:text-[var(--theme-accent-hover)] transition-colors cursor-pointer bg-white dark:bg-zinc-900 border border-[var(--theme-accent-tint)] px-2.5 py-1 rounded-lg shadow-sm"
           >
             Re-analyze
           </button>
@@ -654,7 +654,7 @@ export const Dashboard: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleGenerateReadme(repo.name).then(() => setConfirmingUpdateRepo(null))}
-                          className="text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 px-3 py-1 rounded-md cursor-pointer transition-colors"
+                          className="text-[10px] font-bold text-white bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] px-3 py-1 rounded-md cursor-pointer transition-colors"
                         >
                           Confirm
                         </button>
@@ -704,7 +704,7 @@ export const Dashboard: React.FC = () => {
               <div className="w-full md:w-1/2 h-1/2 md:h-full border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-900 flex flex-col overflow-hidden">
                 <div className="bg-zinc-50 dark:bg-[#121212] px-4 py-2 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
                   <span>Live Preview</span>
-                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/20 px-1.5 py-0.5 rounded">
+                  <span className="text-[9px] text-[var(--theme-accent-text)] bg-[var(--theme-accent-tint)] border border-[var(--theme-accent-tint)] px-1.5 py-0.5 rounded">
                     Updates Live
                   </span>
                 </div>
@@ -783,11 +783,11 @@ export const Dashboard: React.FC = () => {
                 <button
                   onClick={handlePushToGitHub}
                   disabled={pushingReadmeFor !== null}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 px-5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  className="bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white disabled:opacity-50 px-5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
                 >
                   {pushingReadmeFor === activeReadmeModalRepo ? (
                     <>
-                      <span className="w-3.5 h-3.5 border-2 border-emerald-800 border-t-white rounded-full animate-spin"></span>
+                      <span className="w-3.5 h-3.5 border-2 border-[var(--theme-accent-text)] border-t-white rounded-full animate-spin"></span>
                       <span>Pushing...</span>
                     </>
                   ) : (

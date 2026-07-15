@@ -4,10 +4,12 @@ import { useAuthStore } from '../store/authStore';
 import { useRepoStore } from '../store/repoStore';
 import { useResumeStore } from '../store/resumeStore';
 import { ThemeToggle } from './ThemeToggle';
+import { useAppThemeStore } from '../store/themeStore';
 import { useHistoryStore } from '../store/historyStore';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuthStore();
+  const { selectedTheme } = useAppThemeStore();
   const clearRepos = useRepoStore((state) => state.clearRepos);
   const clearResume = useResumeStore((state) => state.clearResume);
   const location = useLocation();
@@ -34,7 +36,7 @@ export const Navbar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const renderSidebarIcon = (label: string, active: boolean) => {
-    const color = active ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 group-hover:text-white';
+    const color = active ? 'text-[var(--theme-accent)]' : 'text-zinc-400 group-hover:text-white';
     const stroke = "2.2";
     switch (label) {
       case 'Dashboard':
@@ -91,9 +93,12 @@ export const Navbar: React.FC = () => {
         to={to}
         className={`group flex items-center justify-between px-4 py-3 transition-all duration-300 ease-out rounded-2xl border backdrop-blur-md cursor-pointer ${
           active
-            ? 'font-body text-sm font-semibold text-white bg-white/10 border-white/20 shadow-[0_8px_20px_-6px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.1)] hover:-translate-y-0.5 hover:scale-[1.02] hover:bg-white/15 hover:border-white/25 hover:shadow-[0_12px_24px_-4px_rgba(16,185,129,0.5),inset_0_1px_0_rgba(255,255,255,0.2)]'
+            ? 'font-body text-sm font-semibold text-white bg-white/10 border-white/20 hover:-translate-y-0.5 hover:scale-[1.02] hover:bg-white/15 hover:border-white/25'
             : 'font-body text-sm font-medium text-white/60 hover:text-white bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.08] hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:scale-[1.02] transition-colors'
         }`}
+        style={active ? {
+          boxShadow: '0 8px 20px -6px var(--theme-glow-color), inset 0 1px 0 rgba(255,255,255,0.1)'
+        } : undefined}
       >
         <div className="flex items-center gap-3">
           {renderSidebarIcon(label, active)}
@@ -102,7 +107,7 @@ export const Navbar: React.FC = () => {
         {badge !== undefined && badge > 0 && (
           <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm transition-all ${
             active 
-              ? 'bg-emerald-600 text-white' 
+              ? 'bg-[var(--theme-accent)] text-white' 
               : 'bg-white/10 text-zinc-300 group-hover:bg-white/20 group-hover:text-white'
           }`}>
             {badge}
@@ -117,13 +122,13 @@ export const Navbar: React.FC = () => {
   return (
     <>
       {/* Desktop Vertical Sidebar */}
-      <aside className="md:flex hidden flex-col w-64 h-screen fixed left-0 top-0 bg-gradient-to-b from-teal-955/95 via-emerald-950/95 to-zinc-955/98 border-r border-white/5 py-8 z-50 justify-between px-4">
+      <aside className="md:flex hidden flex-col w-64 h-screen fixed left-0 top-0 bg-gradient-to-b from-zinc-950/95 via-[var(--theme-accent-tint)] to-zinc-950/98 border-r border-white/5 py-8 z-50 justify-between px-4">
         <div className="flex flex-col">
           {/* Logo Header */}
           <Link to="/dashboard" className="flex items-center gap-3 px-2 mb-10 cursor-pointer">
             <img src="/favicon.svg" className="w-8 h-8 rounded-lg" />
             <span className="font-heading font-bold text-base tracking-tight text-white">
-              Job<span className="text-emerald-400">Lens</span>
+              Job<span className="text-[var(--theme-accent)]">Lens</span>
             </span>
           </Link>
 
@@ -198,7 +203,7 @@ export const Navbar: React.FC = () => {
           onClick={() => setIsMoreOpen(true)}
           className={`w-10 h-10 rounded-full flex flex-col items-center justify-center relative transition-all duration-300 active:scale-90 cursor-pointer ${
             isMoreTabActive
-              ? 'text-emerald-500 dark:text-emerald-400'
+              ? 'text-[var(--theme-accent)]'
               : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'
           }`}
           title="More Options"
@@ -207,7 +212,7 @@ export const Navbar: React.FC = () => {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
           </svg>
           {isMoreTabActive && (
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 absolute bottom-0.5 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--theme-accent)] absolute bottom-0.5" style={{ boxShadow: '0 0 8px var(--theme-glow-color)' }} />
           )}
         </button>
 
@@ -216,7 +221,7 @@ export const Navbar: React.FC = () => {
           to="/dashboard"
           className={`w-10 h-10 rounded-full flex flex-col items-center justify-center relative transition-all duration-300 active:scale-90 ${
             isActive('/dashboard')
-              ? 'text-emerald-500 dark:text-emerald-400'
+              ? 'text-[var(--theme-accent)]'
               : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'
           }`}
           title="Dashboard"
@@ -225,18 +230,21 @@ export const Navbar: React.FC = () => {
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
           </svg>
           {isActive('/dashboard') && (
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 absolute bottom-0.5 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--theme-accent)] absolute bottom-0.5" style={{ boxShadow: '0 0 8px var(--theme-glow-color)' }} />
           )}
         </Link>
 
         {/* Tab 3: Analyze (Center FAB - Core Value Action) */}
         <Link
           to="/analyze"
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 transform -translate-y-2.5 shadow-[0_4px_14px_rgba(16,185,129,0.35)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.45)] bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-400 dark:to-teal-400 text-white ${
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 transform -translate-y-2.5 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white ${
             isActive('/analyze')
-              ? 'ring-4 ring-emerald-500/20 dark:ring-emerald-400/30 scale-105 shadow-[0_8px_25px_rgba(16,185,129,0.5)]'
+              ? 'ring-4 ring-[var(--theme-accent-tint)] scale-105 shadow-lg'
               : ''
           }`}
+          style={{
+            boxShadow: isActive('/analyze') ? '0 8px 25px var(--theme-glow-color)' : '0 4px 14px var(--theme-glow-color)'
+          }}
           title="Analyze"
         >
           <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -249,7 +257,7 @@ export const Navbar: React.FC = () => {
           to="/resumes"
           className={`w-10 h-10 rounded-full flex flex-col items-center justify-center relative transition-all duration-300 active:scale-90 ${
             isActive('/resumes')
-              ? 'text-emerald-500 dark:text-emerald-400'
+              ? 'text-[var(--theme-accent)]'
               : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'
           }`}
           title="Resumes"
@@ -258,7 +266,7 @@ export const Navbar: React.FC = () => {
             <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
           </svg>
           {isActive('/resumes') && (
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 absolute bottom-0.5 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--theme-accent)] absolute bottom-0.5" style={{ boxShadow: '0 0 8px var(--theme-glow-color)' }} />
           )}
         </Link>
 
@@ -272,16 +280,17 @@ export const Navbar: React.FC = () => {
             src={user.avatar_url}
             className={`w-7 h-7 rounded-full object-cover border transition-all duration-300 ${
               isActive('/onboarding')
-                ? 'border-emerald-500 dark:border-emerald-400 scale-105 shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+                ? 'border-[var(--theme-accent)] scale-105'
                 : 'border-zinc-200 dark:border-zinc-800'
             }`}
+            style={isActive('/onboarding') ? { boxShadow: '0 0 12px var(--theme-glow-color)' } : undefined}
             onError={(e) => {
               (e.target as HTMLImageElement).src =
                 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80';
             }}
           />
           {isActive('/onboarding') && (
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 absolute bottom-0.5 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--theme-accent)] absolute bottom-0.5" style={{ boxShadow: '0 0 8px var(--theme-glow-color)' }} />
           )}
         </Link>
       </div>
@@ -309,7 +318,7 @@ export const Navbar: React.FC = () => {
               onClick={() => setIsMoreOpen(false)}
               className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-50/50 dark:bg-zinc-955/40 border border-zinc-150 dark:border-zinc-900/60 active:scale-95 transition-all cursor-pointer"
             >
-              <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
+              <div className="p-2 bg-[var(--theme-accent-tint)] text-[var(--theme-accent-text)] rounded-xl">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                 </svg>

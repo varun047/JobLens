@@ -346,7 +346,7 @@ export const Templates: React.FC = () => {
         {!isEditing && (
           <button
             onClick={handleCreateNew}
-            className="font-body text-sm font-semibold tracking-[0.1px] px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+            className="font-body text-sm font-semibold tracking-[0.1px] px-4 py-2 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
           >
             + Create New Template
           </button>
@@ -394,8 +394,8 @@ export const Templates: React.FC = () => {
                     onClick={() => setBaseStyle(s)}
                     className={`py-2 px-1 rounded-lg border text-center text-[10px] font-semibold transition-all capitalize ${
                       baseStyle === s
-                        ? 'border-emerald-500 bg-emerald-950/20 text-emerald-400 font-bold'
-                        : 'border-zinc-200 dark:border-zinc-850 bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400'
+                        ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-tint)] text-[var(--theme-accent-text)] font-bold'
+                        : 'border-zinc-200 dark:border-zinc-850 bg-zinc-50 dark:bg-zinc-950 text-zinc-650 dark:text-zinc-400 hover:border-zinc-400'
                     }`}
                   >
                     {s.replace('-', ' ')}
@@ -500,7 +500,7 @@ export const Templates: React.FC = () => {
                   step="0.5"
                   value={fontSizeBase}
                   onChange={(e) => setFontSizeBase(parseFloat(e.target.value))}
-                  className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[var(--theme-accent)]"
                 />
               </div>
 
@@ -515,7 +515,7 @@ export const Templates: React.FC = () => {
                   step="5"
                   value={marginVertical}
                   onChange={(e) => setMarginVertical(parseInt(e.target.value))}
-                  className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[var(--theme-accent)]"
                 />
               </div>
 
@@ -530,7 +530,7 @@ export const Templates: React.FC = () => {
                   step="5"
                   value={marginHorizontal}
                   onChange={(e) => setMarginHorizontal(parseInt(e.target.value))}
-                  className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[var(--theme-accent)]"
                 />
               </div>
             </div>
@@ -549,7 +549,7 @@ export const Templates: React.FC = () => {
                       onClick={() => setHeaderAlignment(align)}
                       className={`py-1.5 rounded-lg border text-center text-[10px] font-semibold transition-all capitalize ${
                         headerAlignment === align
-                          ? 'border-emerald-500 bg-emerald-955/20 text-emerald-450 font-bold'
+                          ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-tint)] text-[var(--theme-accent-text)] font-bold'
                           : 'border-zinc-200 dark:border-zinc-850 bg-zinc-50 dark:bg-zinc-950 text-zinc-650 dark:text-zinc-400 hover:border-zinc-450'
                       }`}
                     >
@@ -571,7 +571,7 @@ export const Templates: React.FC = () => {
                       onClick={() => setSkillsLayout(layout)}
                       className={`py-1.5 rounded-lg border text-center text-[10px] font-semibold transition-all capitalize ${
                         skillsLayout === layout
-                          ? 'border-emerald-500 bg-emerald-955/20 text-emerald-455 font-bold'
+                          ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-tint)] text-[var(--theme-accent-text)] font-bold'
                           : 'border-zinc-200 dark:border-zinc-850 bg-zinc-50 dark:bg-zinc-950 text-zinc-650 dark:text-zinc-400 hover:border-zinc-450'
                       }`}
                     >
@@ -587,7 +587,7 @@ export const Templates: React.FC = () => {
               <button
                 type="button"
                 onClick={handleSave}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all shadow-sm active:scale-95"
+                className="flex-1 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all shadow-sm active:scale-95"
               >
                 Save Layout Template
               </button>
@@ -670,7 +670,7 @@ export const Templates: React.FC = () => {
                         />
                       ))}
                     </div>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-450 font-bold group-hover:underline">
+                    <span className="text-[10px] text-[var(--theme-accent)] font-bold group-hover:underline">
                       Customize →
                     </span>
                   </div>
@@ -714,7 +714,7 @@ export const Templates: React.FC = () => {
 
                     <div className="flex items-center justify-between gap-2 mb-1.5 pr-8">
                       <p className="font-heading text-sm font-bold text-zinc-900 dark:text-white truncate">{tpl.name}</p>
-                      <span className="font-body text-[8px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-250 dark:border-emerald-900/30">
+                      <span className="font-body text-[8px] font-extrabold uppercase tracking-wider text-[var(--theme-accent-text)] bg-[var(--theme-accent-tint)] border border-[var(--theme-accent-tint)] px-1.5 py-0.5 rounded">
                         Custom
                       </span>
                     </div>
@@ -726,7 +726,7 @@ export const Templates: React.FC = () => {
                         <span className="w-3.5 h-3.5 rounded-full border border-zinc-200 dark:border-zinc-800" style={{ backgroundColor: tpl.secondaryColor }} />
                         <span className="w-3.5 h-3.5 rounded-full border border-zinc-200 dark:border-zinc-800" style={{ backgroundColor: tpl.backgroundColor }} />
                       </div>
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-450 font-bold group-hover:underline">
+                      <span className="text-[10px] text-[var(--theme-accent)] font-bold group-hover:underline">
                         Edit Style →
                       </span>
                     </div>

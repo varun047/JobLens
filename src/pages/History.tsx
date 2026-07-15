@@ -197,7 +197,7 @@ export const History: React.FC = () => {
             <div className="flex flex-wrap gap-3 mb-8">
               <button
                 onClick={() => handleUseAsBase(selectedAnalysis)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-sm"
+                className="bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-sm"
               >
                 ✓ Use as Base Resume
               </button>
