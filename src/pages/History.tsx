@@ -3,9 +3,11 @@ import { useAuthStore } from '../store/authStore';
 import { useHistoryStore, type AnalysisHistory } from '../store/historyStore';
 import { useNavigate } from 'react-router-dom';
 import { downloadResumePDF } from '../lib/generatePDF';
+import { useAppThemeStore } from '../store/themeStore';
 
 export const History: React.FC = () => {
   const { user } = useAuthStore();
+  const { selectedTheme } = useAppThemeStore();
   const {
     analyses,
     selectedAnalysis,
@@ -18,6 +20,22 @@ export const History: React.FC = () => {
 
   const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
   const [activeTab, setActiveTab] = useState<'resume' | 'projects' | 'ats' | 'advice'>('resume');
+
+  const getStreak = () => {
+    if (analyses.length === 0) return 0;
+    let streakCount = 1;
+    for (let i = 0; i < analyses.length - 1; i++) {
+      const current = analyses[i];       // more recent
+      const previous = analyses[i + 1];  // older
+      if (current.ats_score.after >= previous.ats_score.after) {
+        streakCount++;
+      } else {
+        break;
+      }
+    }
+    return streakCount;
+  };
+  const streak = getStreak();
 
   useEffect(() => {
     if (user?.id) {
