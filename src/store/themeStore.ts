@@ -8,6 +8,7 @@ interface AppThemeState {
   identityTitle: string;
   identityTagline: string;
   identityCompleted: boolean;
+  identityLoaded: boolean;
   setTheme: (theme: AppTheme) => void;
   setIdentity: (title: string, tagline: string) => void;
   setIdentityCompleted: (completed: boolean) => void;
@@ -23,6 +24,7 @@ export const useAppThemeStore = create<AppThemeState>((set) => ({
   identityTitle: '',
   identityTagline: '',
   identityCompleted: false,
+  identityLoaded: false,
 
   setTheme: (theme) => {
     set({ selectedTheme: theme });
@@ -54,11 +56,15 @@ export const useAppThemeStore = create<AppThemeState>((set) => ({
           identityTagline: data.identity_tagline || '',
           selectedTheme: theme,
           identityCompleted: !!data.identity_completed,
+          identityLoaded: true,
         });
         document.documentElement.setAttribute('data-app-theme', theme);
+      } else {
+        set({ identityLoaded: true });
       }
     } catch (err) {
       console.error('Failed to sync theme/identity from Supabase:', err);
+      set({ identityLoaded: true });
     }
   },
 
@@ -81,6 +87,7 @@ export const useAppThemeStore = create<AppThemeState>((set) => ({
         identityTagline: tagline,
         selectedTheme: theme,
         identityCompleted: true,
+        identityLoaded: true,
       });
       document.documentElement.setAttribute('data-app-theme', theme);
     } catch (err) {

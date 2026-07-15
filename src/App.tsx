@@ -10,6 +10,7 @@ import Analytics from './pages/Analytics';
 import History from './pages/History';
 import { Resumes } from './pages/Resumes';
 import Templates from './pages/Templates';
+import CreateIdentity from './pages/CreateIdentity';
 import { useAuthStore } from './store/authStore';
 import { useAppThemeStore } from './store/themeStore';
 import { supabase } from './lib/supabase';
@@ -59,6 +60,15 @@ function App() {
         <main className={`flex-grow pb-24 md:pb-0 ${user ? 'md:pl-64' : ''}`}>
           <Routes>
             <Route path="/login" element={<Login />} />
+
+            <Route
+              path="/create-identity"
+              element={
+                <ProtectedRoute>
+                  <CreateIdentity />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/onboarding"
