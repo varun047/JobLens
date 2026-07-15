@@ -11,10 +11,23 @@ import History from './pages/History';
 import { Resumes } from './pages/Resumes';
 import Templates from './pages/Templates';
 import { useAuthStore } from './store/authStore';
+import { useAppThemeStore } from './store/themeStore';
 import { supabase } from './lib/supabase';
 
 function App() {
   const { user, setSession, setLoading } = useAuthStore();
+  const selectedTheme = useAppThemeStore((state) => state.selectedTheme);
+  const syncFromSupabase = useAppThemeStore((state) => state.syncFromSupabase);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-app-theme', selectedTheme);
+  }, [selectedTheme]);
+
+  useEffect(() => {
+    if (user?.id) {
+      syncFromSupabase(user.id);
+    }
+  }, [user?.id, syncFromSupabase]);
 
   useEffect(() => {
     // Check current session

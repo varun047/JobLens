@@ -263,8 +263,16 @@ export const useAgentStore = create<AgentState>()(
             set({ agentStatus: 'step1', statusMessage: 'Analyzing your GitHub projects for best fit...' });
 
             const selectedAnalyses = repoAnalyses.filter((a) =>
-              repos.some((r) => r.name === a.repo_name)
+              repos.some((r) => r.name === a.repo_name) && !a.isEmpty
             );
+
+            if (selectedAnalyses.length === 0) {
+              set({
+                error: 'None of the selected repositories have analyzable content. Please select different repositories.',
+                agentStatus: 'error',
+              });
+              return;
+            }
 
             // Step 1: Project Ranker
             const step1Prompt = `You are a recruitment expert. You must ONLY choose from these EXACT project names listed below. Do NOT invent or suggest any other projects. Do NOT make up project names.

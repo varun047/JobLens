@@ -102,10 +102,11 @@ export interface RepoAnalysis {
   summary: string;
   techStack: string[];
   complexity: 'beginner' | 'intermediate' | 'advanced';
-  domains: string[];
   highlights: string[];
+  domains: string[];
   raw_files?: any[];
   analyzed_at?: string;
+  isEmpty?: boolean;
 }
 
 export interface HistoryAnalysis {

@@ -78,6 +78,13 @@ function selectKeyFiles(treeNodes: any[]): string[] {
   return Array.from(new Set(selectedPaths));
 }
 
+function isRepoEffectivelyEmpty(repo: { readme?: string; fileTree?: string[]; keyFiles?: { path: string; content: string }[] }): boolean {
+  const hasFileTree = (repo.fileTree || []).length > 1; // more than just e.g. a .gitignore
+  const hasKeyFiles = (repo.keyFiles || []).length > 0 && repo.keyFiles!.some(f => f.content && f.content.trim().length > 20);
+  const hasReadme = !!(repo.readme && repo.readme.trim().length > 30);
+  return !hasFileTree && !hasKeyFiles && !hasReadme;
+}
+
 async function callOllamaAPI(prompt: string): Promise<any> {
   const ollamaUrl = (import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434').replace(/\/+$/, '');
   const response = await fetch(`${ollamaUrl}/api/chat`, {
@@ -313,6 +320,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
           highlights: Array.isArray(a.highlights) ? a.highlights : [],
           raw_files: Array.isArray(a.raw_files) ? a.raw_files : [],
           analyzed_at: a.analyzed_at,
+          isEmpty: !!a.is_empty,
         }));
 
         setRepoAnalyses(mapped);
@@ -335,6 +343,39 @@ export const useRepoStore = create<RepoState>((set, get) => ({
         setAnalysisProgress({ current: i + 1, total, currentRepo: repo.name });
 
         try {
+          if (isRepoEffectivelyEmpty(repo)) {
+            const emptyAnalysis = {
+              user_id: userId,
+              repo_name: repo.name,
+              repo_url: repo.html_url,
+              summary: "This repository appears to be empty or contains no substantive code that could be analyzed.",
+              tech_stack: [],
+              complexity: 'beginner',
+              domains: [],
+              highlights: [],
+              raw_files: repo.keyFiles || [],
+              analyzed_at: new Date().toISOString(),
+              is_empty: true,
+            };
+
+            await supabase.from('repo_analyses').insert(emptyAnalysis);
+
+            newAnalyses.push({
+              repo_name: repo.name,
+              repo_url: repo.html_url,
+              summary: emptyAnalysis.summary,
+              techStack: [],
+              complexity: 'beginner',
+              domains: [],
+              highlights: [],
+              raw_files: repo.keyFiles || [],
+              analyzed_at: emptyAnalysis.analyzed_at,
+              isEmpty: true,
+            });
+
+            continue;
+          }
+
           const prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks. Start with { and end with }. Nothing else.
 
 Analyze this GitHub project:
@@ -374,6 +415,7 @@ Return this exact JSON:
             highlights: Array.isArray(result.highlights) ? result.highlights : [],
             raw_files: repo.keyFiles || [],
             analyzed_at: new Date().toISOString(),
+            is_empty: false,
           });
 
           newAnalyses.push({
@@ -386,6 +428,7 @@ Return this exact JSON:
             highlights: Array.isArray(result.highlights) ? result.highlights : [],
             raw_files: repo.keyFiles || [],
             analyzed_at: new Date().toISOString(),
+            isEmpty: false,
           });
         } catch (repoErr) {
           console.error(`Error analyzing repo ${repo.name}:`, repoErr);
@@ -563,6 +606,47 @@ Make it professional and accurate. Return ONLY raw markdown.`;
     if (!repo) return;
 
     try {
+      if (isRepoEffectivelyEmpty(repo)) {
+        const dbRow = {
+          user_id: userId,
+          repo_name: repo.name,
+          repo_url: repo.html_url,
+          summary: "This repository appears to be empty or contains no substantive code that could be analyzed.",
+          tech_stack: [],
+          complexity: 'beginner',
+          domains: [],
+          highlights: [],
+          raw_files: repo.keyFiles || [],
+          analyzed_at: new Date().toISOString(),
+          is_empty: true,
+        };
+
+        await supabase
+          .from('repo_analyses')
+          .delete()
+          .eq('user_id', userId)
+          .eq('repo_name', repoName);
+
+        await supabase.from('repo_analyses').insert(dbRow);
+
+        const updatedAnalysis: RepoAnalysis = {
+          repo_name: repo.name,
+          repo_url: repo.html_url,
+          summary: dbRow.summary,
+          techStack: [],
+          complexity: 'beginner',
+          domains: [],
+          highlights: [],
+          raw_files: repo.keyFiles || [],
+          analyzed_at: dbRow.analyzed_at,
+          isEmpty: true,
+        };
+
+        const filtered = repoAnalyses.filter((a) => a.repo_name !== repoName);
+        setRepoAnalyses([...filtered, updatedAnalysis]);
+        return;
+      }
+
       const prompt = `You must respond with ONLY a JSON object. No introduction, no explanation, no markdown, no backticks. Start with { and end with }. Nothing else.
 
 Analyze this GitHub project:
@@ -602,6 +686,7 @@ Return this exact JSON:
         highlights: Array.isArray(result.highlights) ? result.highlights : [],
         raw_files: repo.keyFiles || [],
         analyzed_at: new Date().toISOString(),
+        is_empty: false,
       };
 
       await supabase
@@ -622,6 +707,7 @@ Return this exact JSON:
         highlights: Array.isArray(result.highlights) ? result.highlights : [],
         raw_files: repo.keyFiles || [],
         analyzed_at: new Date().toISOString(),
+        isEmpty: false,
       };
 
       const filtered = repoAnalyses.filter((a) => a.repo_name !== repoName);

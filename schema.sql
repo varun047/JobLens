@@ -6,7 +6,11 @@ CREATE TABLE IF NOT EXISTS public.users (
   email TEXT,
   name TEXT,
   avatar_url TEXT,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  identity_title TEXT,
+  identity_tagline TEXT,
+  selected_theme TEXT DEFAULT 'emerald' CHECK (selected_theme IN ('emerald', 'violet', 'amber')),
+  identity_completed BOOLEAN DEFAULT FALSE
 );
 
 -- Enable RLS on public.users
@@ -76,7 +80,8 @@ CREATE TABLE IF NOT EXISTS public.repo_analyses (
   domains jsonb DEFAULT '[]',
   highlights jsonb DEFAULT '[]',
   raw_files jsonb DEFAULT '[]',
-  analyzed_at timestamptz DEFAULT now()
+  analyzed_at timestamptz DEFAULT now(),
+  is_empty boolean DEFAULT false
 );
 
 ALTER TABLE public.repo_analyses ENABLE ROW LEVEL SECURITY;
@@ -146,3 +151,19 @@ ALTER TABLE public.analysis_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users access own history"
 ON public.analysis_history FOR ALL
 USING (auth.uid() = user_id);
+
+-- Migration support: add columns to public.users if they do not exist
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS identity_title TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS identity_tagline TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS selected_theme TEXT DEFAULT 'emerald';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS identity_completed BOOLEAN DEFAULT FALSE;
+
+-- Ensure check constraint for selected_theme is added to public.users
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'users_selected_theme_check'
+  ) THEN
+    ALTER TABLE public.users ADD CONSTRAINT users_selected_theme_check CHECK (selected_theme IN ('emerald', 'violet', 'amber'));
+  END IF;
+END $$;
