@@ -68,7 +68,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-[#0f0f0f] text-zinc-950 dark:text-zinc-200 flex flex-col transition-colors duration-200">
       {!isCreateIdentity && <Navbar />}
-      <main className={`flex-grow pb-24 md:pb-0 ${user && !isCreateIdentity ? 'md:pl-64' : ''}`}>
+      <main className={`flex-grow pb-24 md:pb-0 ${user && !isCreateIdentity ? 'pt-16' : ''}`}>
         <Routes>
           <Route path="/login" element={<Login />} />
 

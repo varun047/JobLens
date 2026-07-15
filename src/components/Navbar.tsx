@@ -17,6 +17,8 @@ export const Navbar: React.FC = () => {
 
   const { fetchHistory } = useHistoryStore();
   const [isMoreOpen, setIsMoreOpen] = React.useState(false);
+  const [exploreOpen, setExploreOpen] = React.useState(false);
+  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (user?.id) {
@@ -34,6 +36,41 @@ export const Navbar: React.FC = () => {
   if (!user) return null;
 
   const isActive = (path: string) => location.pathname === path;
+  const isExploreActive = ['/onboarding', '/templates', '/history', '/analytics'].includes(location.pathname);
+
+  const renderNavLink = (to: string, label: string) => {
+    const active = isActive(to);
+    return (
+      <Link
+        to={to}
+        className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-250 cursor-pointer ${
+          active
+            ? 'text-white bg-white/10'
+            : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+        }`}
+      >
+        {label}
+      </Link>
+    );
+  };
+
+  const renderDropdownLink = (to: string, label: string, desc: string) => {
+    const active = isActive(to);
+    return (
+      <Link
+        to={to}
+        onClick={() => setExploreOpen(false)}
+        className={`flex flex-col gap-0.5 px-3.5 py-2.5 rounded-xl transition-all duration-200 cursor-pointer hover:bg-white/[0.04] ${
+          active ? 'bg-white/5 border border-white/5' : ''
+        }`}
+      >
+        <span className={`text-xs font-bold ${active ? 'text-[var(--theme-accent)]' : 'text-zinc-200'}`}>
+          {label}
+        </span>
+        <span className="text-[9px] text-zinc-500 font-semibold">{desc}</span>
+      </Link>
+    );
+  };
 
   const renderSidebarIcon = (label: string, active: boolean) => {
     const color = active ? 'text-[var(--theme-accent)]' : 'text-zinc-400 group-hover:text-white';
@@ -80,121 +117,129 @@ export const Navbar: React.FC = () => {
           <svg className={`w-4 h-4 ${color}`} fill="none" stroke="currentColor" strokeWidth={stroke} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
           </svg>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const renderSidebarLink = (to: string, label: string, badge?: number) => {
-    const active = isActive(to);
-    return (
-      <Link
-        to={to}
-        className={`group flex items-center justify-between px-4 py-3 transition-all duration-300 ease-out rounded-2xl border backdrop-blur-md cursor-pointer ${
-          active
-            ? 'font-body text-sm font-semibold text-white bg-white/10 border-white/20 hover:-translate-y-0.5 hover:scale-[1.02] hover:bg-white/15 hover:border-white/25'
-            : 'font-body text-sm font-medium text-white/60 hover:text-white bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.08] hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:scale-[1.02] transition-colors'
-        }`}
-        style={active ? {
-          boxShadow: '0 8px 20px -6px var(--theme-glow-color), inset 0 1px 0 rgba(255,255,255,0.1)'
-        } : undefined}
-      >
-        <div className="flex items-center gap-3">
-          {renderSidebarIcon(label, active)}
-          <span>{label}</span>
-        </div>
-        {badge !== undefined && badge > 0 && (
-          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm transition-all ${
-            active 
-              ? 'bg-[var(--theme-accent)] text-white' 
-              : 'bg-white/10 text-zinc-300 group-hover:bg-white/20 group-hover:text-white'
-          }`}>
-            {badge}
-          </span>
-        )}
-      </Link>
-    );
-  };
-
   const isMoreTabActive = isMoreOpen || ['/onboarding', '/templates', '/history', '/analytics'].includes(location.pathname);
 
   return (
     <>
-      {/* Desktop Vertical Sidebar */}
-      <aside className="md:flex hidden flex-col w-64 h-screen fixed left-0 top-0 bg-gradient-to-b from-zinc-950/95 via-[var(--theme-accent-tint)] to-zinc-950/98 border-r border-white/5 py-8 z-50 justify-between px-4">
-        <div className="flex flex-col">
-          {/* Logo Header */}
-          <Link to="/dashboard" className="flex items-center gap-3 px-2 mb-10 cursor-pointer">
-            <img src="/favicon.svg" className="w-8 h-8 rounded-lg" />
-            <span className="font-heading font-bold text-base tracking-tight text-white">
+      {/* Desktop Horizontal Navbar */}
+      <header className="md:flex hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0a0c]/85 dark:bg-[#0c0c0e]/85 backdrop-blur-xl border-b border-zinc-200/10 dark:border-zinc-850/30 items-center justify-between px-8 z-50 transition-all duration-200">
+        
+        {/* Left Side: Logo & User Arrow */}
+        <div className="flex items-center gap-6">
+          <Link to="/dashboard" className="flex items-center gap-3 cursor-pointer group">
+            <img src="/favicon.svg" className="w-8 h-8 rounded-lg group-hover:scale-105 transition-transform" />
+            <span className="font-heading font-bold text-base tracking-tight text-white flex items-center gap-1.5">
               Job<span className="text-[var(--theme-accent)]">Lens</span>
+              {/* Subtle down arrow next to logo like Uniswap V3 */}
+              <svg className="w-3 h-3 text-zinc-450 dark:text-zinc-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
             </span>
           </Link>
 
-          {/* Navigation Links */}
-          <nav className="flex flex-col gap-6">
-            {/* Category 1: Core Features */}
-            <div className="space-y-1.5">
-              <span className="text-[9px] font-bold text-white/30 uppercase tracking-[2px] block mb-1.5 px-3">
-                Core Features
-              </span>
-              {renderSidebarLink('/dashboard', 'Dashboard')}
-              {renderSidebarLink('/analyze', 'Analyze')}
-              {renderSidebarLink('/resumes', 'Resumes')}
-            </div>
+          {/* Left-Center Navigation Links */}
+          <nav className="flex items-center gap-1">
+            {renderNavLink('/dashboard', 'Dashboard')}
+            {renderNavLink('/analyze', 'Analyze')}
+            {renderNavLink('/resumes', 'Resumes')}
 
-            {/* Category 2: Setup & Tools */}
-            <div className="space-y-1.5">
-              <span className="text-[9px] font-bold text-white/30 uppercase tracking-[2px] block mb-1.5 px-3">
-                Setup & Tools
-              </span>
-              {renderSidebarLink('/onboarding', 'Resume Profile')}
-              {renderSidebarLink('/templates', 'Templates')}
-              {renderSidebarLink('/history', 'History')}
-              {renderSidebarLink('/analytics', 'Analytics')}
+            {/* Explore Dropdown Trigger */}
+            <div 
+              className="relative"
+              onMouseEnter={() => setExploreOpen(true)}
+              onMouseLeave={() => setExploreOpen(false)}
+            >
+              <button
+                type="button"
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                  isExploreActive
+                    ? 'text-white bg-white/10'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <span>Explore</span>
+                <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${exploreOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+
+              {/* Uniswap Dropdown overlay */}
+              {exploreOpen && (
+                <div className="absolute top-[38px] left-0 w-52 bg-[#12131a]/95 dark:bg-[#0f1016]/95 border border-zinc-800/80 rounded-2xl p-2 shadow-2xl backdrop-blur-lg animate-fadeIn z-[100] flex flex-col gap-1">
+                  {renderDropdownLink('/onboarding', 'Resume Profile', 'Base Resume')}
+                  {renderDropdownLink('/templates', 'Templates', 'Doc Styles')}
+                  {renderDropdownLink('/history', 'History', 'Saved Logs')}
+                  {renderDropdownLink('/analytics', 'Analytics', 'Score Trends')}
+                </div>
+              )}
             </div>
           </nav>
         </div>
 
-        {/* Sidebar Footer Controls */}
-        <div className="flex flex-col gap-6 items-center px-2 pt-6 border-t border-white/10">
-          {/* Vertical Capsule Theme Switch */}
-          <ThemeToggle variant="sidebar" />
-          
-          {/* User badge */}
-          <div className="w-full flex items-center justify-between p-1.5 rounded-xl gap-2 hover:bg-white/5 transition-all duration-300 cursor-pointer">
-            <div className="flex items-center gap-2 min-w-0">
+        {/* Right Side: Search Icon, Theme switcher, Connect/Sign Out Button */}
+        <div className="flex items-center gap-4">
+          {/* Search Icon */}
+          <button 
+            type="button" 
+            className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/[0.04] transition-all cursor-pointer"
+            title="Search Codebases"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.637 10.637z" />
+            </svg>
+          </button>
+
+          {/* Theme switcher */}
+          <ThemeToggle />
+
+          {/* Uniswap-style Capsule Connect/User CTA Button */}
+          <div 
+            className="relative"
+            onMouseEnter={() => setUserMenuOpen(true)}
+            onMouseLeave={() => setUserMenuOpen(false)}
+          >
+            <button
+              type="button"
+              className="flex items-center gap-2.5 px-4 py-2 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-white rounded-full font-bold text-xs shadow-md transition-all duration-300 hover:shadow-[0_0_15px_var(--theme-glow-color)] active:scale-95 cursor-pointer"
+            >
               <img
                 src={user.avatar_url}
-                alt={user.name}
-                className="w-8 h-8 rounded-full border border-white/10 shadow-sm object-cover"
+                className="w-5 h-5 rounded-full object-cover border border-white/20 shadow-inner"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
                     'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80';
                 }}
               />
-              <div className="flex flex-col min-w-0">
-                <span className="text-[11px] font-bold text-white truncate max-w-[110px] tracking-tight leading-tight">
-                  {user.name}
-                </span>
-                <span className="text-[9px] font-semibold text-zinc-400">
-                  Free Account
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer"
-              title="Sign Out"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              <span className="max-w-[80px] truncate">{user.name.split(' ')[0]}</span>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
             </button>
+
+            {/* User Details Dropdown menu */}
+            {userMenuOpen && (
+              <div className="absolute top-[38px] right-0 w-48 bg-[#12131a]/95 dark:bg-[#0f1016]/95 border border-zinc-800/80 rounded-2xl p-3 shadow-2xl backdrop-blur-lg animate-fadeIn z-[100] flex flex-col gap-2">
+                <div className="px-1 py-0.5 border-b border-white/5 pb-2">
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Account</p>
+                  <p className="text-xs font-bold text-white truncate mt-1">{user.name}</p>
+                  <p className="text-[9px] font-semibold text-zinc-400 mt-0.5">Free Plan</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer"
+                >
+                  <span>Sign Out</span>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
         </div>
-      </aside>
+
+      </header>
 
       {/* Floating Mobile Bottom Navbar */}
       <div className="md:hidden fixed bottom-5 left-1/2 -translate-x-1/2 w-[92%] max-w-[380px] h-14 bg-white/85 dark:bg-[#0c0c0e]/85 border border-zinc-200/40 dark:border-zinc-850 rounded-full px-4 flex items-center justify-between shadow-[0_12px_35px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl z-[100] animate-fadeIn transition-colors duration-250">
